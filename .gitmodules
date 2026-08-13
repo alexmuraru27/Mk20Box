@@ -1,0 +1,3 @@
+[submodule "external/MK20Control"]
+	path = external/MK20Control
+	url = https://github.com/alexmuraru27/MK20Control.git
