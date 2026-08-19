@@ -8,9 +8,44 @@ function-specific pictograms, category-color LED accents, hardware details,
 and compact labels. Transparent backgrounds allow each button's configured
 background color to remain visible.
 
-**Total: 234 icons across 12 categories.**
+**Total: 237 icons across 12 categories.**
 
 Location: `src/Mk20Box/assets/SimRacingIcons/<Category>/<key>.png`
+
+## No-Text Variants
+
+The no-text collection contains **187 unique artwork variants** so users can
+add their own labels. The pictogram, category frame, separator, accent colors,
+and transparency are unchanged. When multiple labeled icons became visually
+identical after removing their text, only the alphabetically first filename
+was retained (for example, `brake-bias-forward.png` is retained instead of
+also storing `brake-bias-rearward.png`).
+
+Location: `src/Mk20Box/assets/SimRacingIconsNoText/<key>.png`
+
+## Blank Templates
+
+Twelve blank 128x128 PNG templates provide one frame for each category accent
+color. Their transparent center and label areas are ready for custom
+pictograms and text while retaining the original separator and hardware-style
+frame.
+
+Location: `src/Mk20Box/assets/SimRacingIconTemplates/template-<color>.png`
+
+| Color | Template |
+|---|---|
+| Purple | `template-purple.png` |
+| Blue | `template-blue.png` |
+| Emerald | `template-emerald.png` |
+| Orange | `template-orange.png` |
+| Yellow | `template-yellow.png` |
+| Teal | `template-teal.png` |
+| Violet | `template-violet.png` |
+| Indigo | `template-indigo.png` |
+| Cyan | `template-cyan.png` |
+| Coral | `template-coral.png` |
+| Green | `template-green.png` |
+| Lime | `template-lime.png` |
 
 ## Power Engine Drivetrain
 
@@ -104,6 +139,7 @@ Location: `src/Mk20Box/assets/SimRacingIcons/<Category>/<key>.png`
 | `fast-repair` | FAST REP | `04-Pit-Fuel-Tires-Service/fast-repair.png` |
 | `fuel-amount-decrease` | FUEL - | `04-Pit-Fuel-Tires-Service/fuel-amount-decrease.png` |
 | `fuel-amount-increase` | FUEL + | `04-Pit-Fuel-Tires-Service/fuel-amount-increase.png` |
+| `fuel-report` | FUEL RPT | `04-Pit-Fuel-Tires-Service/fuel-report.png` |
 | `fuel-to-end` | FUEL AUTO | `04-Pit-Fuel-Tires-Service/fuel-to-end.png` |
 | `no-fuel` | NO FUEL | `04-Pit-Fuel-Tires-Service/no-fuel.png` |
 | `pit-menu-cancel` | BACK | `04-Pit-Fuel-Tires-Service/pit-menu-cancel.png` |
@@ -244,6 +280,7 @@ Location: `src/Mk20Box/assets/SimRacingIcons/<Category>/<key>.png`
 |---|---|---|
 | `enter-exit-vehicle` | ENTER/EXIT | `10-Recovery-Session/enter-exit-vehicle.png` |
 | `instant-replay` | INST RPLY | `10-Recovery-Session/instant-replay.png` |
+| `mark-lap` | MARK LAP | `10-Recovery-Session/mark-lap.png` |
 | `pause` | PAUSE | `10-Recovery-Session/pause.png` |
 | `replay` | REPLAY | `10-Recovery-Session/replay.png` |
 | `reset-vehicle` | RESET CAR | `10-Recovery-Session/reset-vehicle.png` |
@@ -263,6 +300,7 @@ Location: `src/Mk20Box/assets/SimRacingIcons/<Category>/<key>.png`
 | `cruise-set-on` | CRUISE ON | `11-Truck-Engine-Braking-Cruise/cruise-set-on.png` |
 | `cruise-speed-decrease` | CR SPD - | `11-Truck-Engine-Braking-Cruise/cruise-speed-decrease.png` |
 | `cruise-speed-increase` | CR SPD + | `11-Truck-Engine-Braking-Cruise/cruise-speed-increase.png` |
+| `engine-brake-level-decrease` | EBRK LVL- | `11-Truck-Engine-Braking-Cruise/engine-brake-level-decrease.png` |
 | `engine-brake-level-increase` | EBRK LVL+ | `11-Truck-Engine-Braking-Cruise/engine-brake-level-increase.png` |
 | `engine-brake-toggle` | ENG BRK | `11-Truck-Engine-Braking-Cruise/engine-brake-toggle.png` |
 | `retarder-auto-manual` | RTDR AUTO | `11-Truck-Engine-Braking-Cruise/retarder-auto-manual.png` |
