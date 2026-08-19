@@ -132,6 +132,7 @@ namespace Mk20Box
                 };
 
                 Settings.Profiles.Add(profile);
+                Settings.SortProfiles();
                 SaveSettingsCore();
                 return profile;
             }
@@ -196,6 +197,7 @@ namespace Mk20Box
                 };
 
                 Settings.GameProfiles.Add(binding);
+                Settings.SortGameProfiles();
                 SaveSettingsCore();
                 RefreshActiveProfileCore();
                 return binding;

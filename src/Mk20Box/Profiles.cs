@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Mk20Box
@@ -20,7 +21,9 @@ namespace Mk20Box
             }
 
             NormalizeProfiles();
+            SortProfiles();
             MigrateGameBindings();
+            SortGameProfiles();
 
             Mk20ProfileSettings globalProfile = FindProfileById(GlobalProfileId);
             if (globalProfile == null)
@@ -92,6 +95,38 @@ namespace Mk20Box
         public static string CreateProfileId()
         {
             return Guid.NewGuid().ToString("N");
+        }
+
+        public void SortProfiles()
+        {
+            Mk20ProfileSettings[] sortedProfiles = Profiles
+                .OrderBy(profile => profile.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToArray();
+
+            for (int targetIndex = 0; targetIndex < sortedProfiles.Length; targetIndex++)
+            {
+                int currentIndex = Profiles.IndexOf(sortedProfiles[targetIndex]);
+                if (currentIndex != targetIndex)
+                {
+                    Profiles.Move(currentIndex, targetIndex);
+                }
+            }
+        }
+
+        public void SortGameProfiles()
+        {
+            Mk20GameProfileBindingSettings[] sortedBindings = GameProfiles
+                .OrderBy(binding => binding.GameName, StringComparer.CurrentCultureIgnoreCase)
+                .ToArray();
+
+            for (int targetIndex = 0; targetIndex < sortedBindings.Length; targetIndex++)
+            {
+                int currentIndex = GameProfiles.IndexOf(sortedBindings[targetIndex]);
+                if (currentIndex != targetIndex)
+                {
+                    GameProfiles.Move(currentIndex, targetIndex);
+                }
+            }
         }
 
         private void NormalizeProfiles()

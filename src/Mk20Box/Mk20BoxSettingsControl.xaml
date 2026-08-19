@@ -106,6 +106,8 @@
                         <ListBox x:Name="GameBindingsList"
                                  Height="150"
                                  ItemsSource="{Binding GameProfiles}"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
                                  DisplayMemberPath="GameName" />
 
                         <ComboBox x:Name="SupportedGamesCombo"
