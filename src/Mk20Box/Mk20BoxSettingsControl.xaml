@@ -8,9 +8,136 @@
     <ScrollViewer>
         <styles:SHSection Title="MK20BOX" ShowSeparator="True">
             <StackPanel>
-                <TextBlock Margin="0,4" Text="MK20Box plugin loaded." />
-                <TextBlock Margin="0,4" Opacity="0.7"
-                           Text="Waveshare MK20 button box for SimHub." />
+                <Button x:Name="ProfilesMenuButton"
+                        Width="140" Height="34"
+                        HorizontalAlignment="Left"
+                        Click="ToggleProfilesMenu_Click"
+                        Content="Profiles" />
+                <Border x:Name="ProfilesMenuPanel"
+                        Margin="0,8,0,0" Padding="12"
+                        BorderBrush="#555555" BorderThickness="1"
+                        Visibility="Collapsed">
+                    <StackPanel MaxWidth="900">
+                <TextBlock Margin="0,0,0,12" Opacity="0.7" TextWrapping="Wrap"
+                           Text="Create reusable profiles, then select one globally or bind one to each game selected in SimHub." />
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Margin="0,0,8,0" FontWeight="SemiBold" Text="Selected game:" />
+                    <TextBlock x:Name="ActiveGameText" Grid.Column="1" Margin="0,0,24,0" />
+                    <TextBlock Grid.Column="2" Margin="0,0,8,0" FontWeight="SemiBold" Text="Active profile:" />
+                    <TextBlock x:Name="ActiveProfileText" Grid.Column="3" />
+                </Grid>
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <CheckBox x:Name="UseGlobalProfileCheckBox"
+                              Grid.Column="1" Margin="0,0,0,8"
+                              IsChecked="{Binding UseGlobalProfile, Mode=TwoWay}"
+                              Click="GlobalProfileMode_Click"
+                              Content="Use the global profile for every game" />
+
+                    <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="Global profile" />
+                    <ComboBox x:Name="GlobalProfileCombo"
+                              Grid.Row="1" Grid.Column="1"
+                              ItemsSource="{Binding Profiles}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Id"
+                              SelectionChanged="ProfileSelectionChanged"
+                              SelectedValue="{Binding GlobalProfileId, Mode=TwoWay}" />
+                </Grid>
+
+                <Separator Margin="0,0,0,12" />
+
+                <TextBlock Margin="0,0,0,6" FontWeight="SemiBold" Text="Profile library" />
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock VerticalAlignment="Center" Text="Existing profile" />
+                    <ComboBox x:Name="ProfileLibraryCombo"
+                              Grid.Column="1" Margin="0,0,6,8"
+                              ItemsSource="{Binding Profiles}"
+                              DisplayMemberPath="Name" />
+                    <Button Grid.Column="2" Margin="0,0,0,8" Padding="10,4"
+                            Click="DeleteProfile_Click" Content="Delete" />
+
+                    <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="New profile name" />
+                    <TextBox x:Name="NewProfileNameTextBox"
+                             Grid.Row="1" Grid.Column="1" Margin="0,0,6,0" />
+                    <Button Grid.Row="1" Grid.Column="2" Padding="10,4"
+                            Click="CreateProfile_Click" Content="Create" />
+                </Grid>
+
+                <Separator Margin="0,0,0,12" />
+
+                <TextBlock Margin="0,0,0,12" Opacity="0.7" TextWrapping="Wrap"
+                           Text="When global mode is off, each configured game uses its selected profile. Unconfigured games fall back to the global profile." />
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="260" />
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Margin="0,0,0,6" FontWeight="SemiBold" Text="Configured games" />
+                        <ListBox x:Name="GameBindingsList"
+                                 Height="150"
+                                 ItemsSource="{Binding GameProfiles}"
+                                 DisplayMemberPath="GameName" />
+
+                        <ComboBox x:Name="SupportedGamesCombo"
+                                  Height="30" Margin="0,8,0,6"
+                                  IsEditable="False"
+                                  IsTextSearchEnabled="True" />
+                        <WrapPanel>
+                            <Button Margin="0,0,6,0" Padding="10,4"
+                                    Click="AddGame_Click" Content="Add game" />
+                            <Button Padding="10,4"
+                                    Click="RemoveGame_Click" Content="Remove" />
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <Grid Grid.Column="2" VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="Profile" />
+                        <ComboBox x:Name="GameProfileCombo"
+                                  Grid.Column="1" Height="30" VerticalAlignment="Top"
+                                  ItemsSource="{Binding Profiles}"
+                                  DisplayMemberPath="Name"
+                                  SelectedValuePath="Id"
+                                  SelectionChanged="ProfileSelectionChanged"
+                                  SelectedValue="{Binding SelectedItem.ProfileId, ElementName=GameBindingsList, Mode=TwoWay}" />
+                    </Grid>
+                </Grid>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </styles:SHSection>
     </ScrollViewer>
