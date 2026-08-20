@@ -193,6 +193,14 @@ namespace Mk20Box
                 ? null
                 : Settings.FindProfileById(binding.ProfileId);
 
+            // With per-game profiles, an unbound or stale binding should still land on
+            // this game's own profile rather than another game's.
+            if (gameProfile == null && !string.IsNullOrWhiteSpace(activeGameName))
+            {
+                gameProfile = Settings.Profiles.FirstOrDefault(profile =>
+                    string.Equals(profile.GameName, activeGameName, StringComparison.OrdinalIgnoreCase));
+            }
+
             return gameProfile ?? globalProfile;
         }
 
@@ -296,6 +304,34 @@ namespace Mk20Box
             }
         }
 
+        /// <summary>
+        /// Restores a fresh install: every profile, layout, game binding and
+        /// preference is discarded. The device connection is left alone so the user
+        /// does not have to reconnect.
+        /// </summary>
+        public void ResetAllSettings()
+        {
+            lock (settingsSync)
+            {
+                string portName = Settings.DevicePortName;
+                bool autoConnect = Settings.AutoConnect;
+
+                Settings = new Mk20BoxPluginSettings
+                {
+                    DevicePortName = portName,
+                    AutoConnect = autoConnect,
+                };
+
+                Settings.Normalize();
+                uploadedProfileId = null;
+                SaveSettingsCore();
+                RefreshActiveProfileCore();
+            }
+
+            Router.SetActiveLayout(ActiveProfileLayout());
+            SimHub.Logging.Current.Info("[MK20Box] Settings reset to defaults");
+        }
+
         public bool DeleteProfile(Mk20ProfileSettings profile)
         {
             if (profile == null)
@@ -320,10 +356,17 @@ namespace Mk20Box
 
                 foreach (Mk20GameProfileBindingSettings binding in Settings.GameProfiles)
                 {
-                    if (string.Equals(binding.ProfileId, profile.Id, StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(binding.ProfileId, profile.Id, StringComparison.OrdinalIgnoreCase))
                     {
-                        binding.ProfileId = Settings.GlobalProfileId;
+                        continue;
                     }
+
+                    // Prefer another profile belonging to the same game; falling straight
+                    // back to the global one would show another game's profile here.
+                    Mk20ProfileSettings replacement = Settings.Profiles
+                        .FirstOrDefault(candidate => candidate.IsForGame(binding.GameName));
+
+                    binding.ProfileId = (replacement ?? fallback).Id;
                 }
 
                 SaveSettingsCore();

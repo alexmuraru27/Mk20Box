@@ -445,6 +445,7 @@ namespace Mk20Box
             }
 
             NewProfileNameTextBox.Clear();
+            profileSelectionKey = null;
             RefreshProfileChoices();
             LoadLayoutForActiveProfile();
             UpdateStatus();
@@ -480,6 +481,9 @@ namespace Mk20Box
                 return;
             }
 
+            // The deleted profile may have been the one in use, so let the next status
+            // pass re-resolve rather than trusting the cached selection.
+            profileSelectionKey = null;
             RefreshProfileChoices();
             LoadLayoutForActiveProfile();
             UpdateStatus();
@@ -504,7 +508,11 @@ namespace Mk20Box
                 : Plugin.ProfilesForGame(game);
 
             Mk20ProfileSettings active = Plugin.ActiveProfile;
-            if (active != null && !choices.Contains(active))
+
+            // Only offer it here if it really belongs to this game; otherwise a
+            // fallback to another game's profile would leak into this list.
+            if (active != null && !choices.Contains(active)
+                && (global || active.IsForGame(game)))
             {
                 choices.Add(active);
             }
@@ -597,6 +605,61 @@ namespace Mk20Box
             {
                 Plugin.SaveSettings();
             }
+        }
+
+        /// <summary>
+        /// Wipes all stored settings. Asked twice on purpose: the first prompt
+        /// explains, the second requires typing so it cannot be dismissed by reflex.
+        /// </summary>
+        private void ResetAllSettings_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBoxResult first = MessageBox.Show(
+                "Reset every MK20Box setting?\n\n"
+                    + "This deletes all profiles, key layouts, macros, icons choices and "
+                    + "game bindings, returning the plugin to a fresh install.\n\n"
+                    + "This cannot be undone.",
+                "MK20Box",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (first != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            int profiles = Plugin.Settings.Profiles.Count;
+            MessageBoxResult second = MessageBox.Show(
+                "Last chance.\n\n"
+                    + profiles + " profile(s) and every layout they contain will be "
+                    + "permanently deleted.\n\nAre you absolutely sure?",
+                "MK20Box - confirm reset",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Stop,
+                MessageBoxResult.No);
+
+            if (second != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            Plugin.ResetAllSettings();
+
+            DataContext = Plugin.Settings;
+            UseGlobalProfileCheckBox.IsChecked = Plugin.Settings.UseGlobalProfile;
+            AutoUploadCheckBox.IsChecked = Plugin.Settings.AutoUploadProfile;
+            InputDelayTextBox.Text = Plugin.Settings.InputDelayMs.ToString();
+
+            profileSelectionKey = null;
+            RefreshProfileChoices();
+            LoadLayoutForActiveProfile();
+            UpdateStatus();
+
+            MessageBox.Show(
+                "MK20Box settings have been reset.",
+                "MK20Box",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
 
         private void GlobalProfileMode_Click(object sender, RoutedEventArgs e)

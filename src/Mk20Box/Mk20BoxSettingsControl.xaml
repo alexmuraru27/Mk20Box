@@ -551,6 +551,19 @@
 
                 <TextBlock x:Name="ProfileHintText"
                            Opacity="0.7" TextWrapping="Wrap" />
+
+                <Separator Margin="0,14,0,10" />
+
+                <StackPanel Orientation="Horizontal">
+                    <Button Padding="12,5"
+                            Background="#4A1D1D" BorderBrush="#7A2E2E" Foreground="#F5DADA"
+                            Click="ResetAllSettings_Click"
+                            Content="Reset all MK20Box settings"
+                            ToolTip="Deletes every profile, layout and preference, restoring a fresh install" />
+                    <TextBlock Margin="10,0,0,0" VerticalAlignment="Center"
+                               Opacity="0.65" TextWrapping="Wrap"
+                               Text="Erases every profile, layout, game binding and preference." />
+                </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </Border>
