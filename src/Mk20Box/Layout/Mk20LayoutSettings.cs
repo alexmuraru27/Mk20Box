@@ -82,6 +82,12 @@ namespace Mk20Box.Layout
         /// <summary>-1 is hard top, 0 centred, +1 hard bottom.</summary>
         public double SecondaryBackgroundOffsetY { get; set; }
 
+        /// <summary>
+        /// Show the whole picture, padded to the strip, instead of cropping it to
+        /// fill. The device keeps the original proportions, so this is the default.
+        /// </summary>
+        public bool SecondaryBackgroundFit { get; set; } = true;
+
         public Mk20EncoderSettings LeftEncoder { get; set; } = new Mk20EncoderSettings();
 
         public Mk20EncoderSettings RightEncoder { get; set; } = new Mk20EncoderSettings();
@@ -113,6 +119,18 @@ namespace Mk20Box.Layout
 
         /// <summary>Keep the icon's alpha so a page background shows through.</summary>
         public bool PreserveAlpha { get; set; } = true;
+
+        /// <summary>
+        /// Show the whole picture on the key, padded to the square, instead of
+        /// cropping it to fill. The device pads by default, so this matches it.
+        /// </summary>
+        public bool IconFit { get; set; } = true;
+
+        /// <summary>Crop pan when <see cref="IconFit"/> is off. -1 left, +1 right.</summary>
+        public double IconOffsetX { get; set; }
+
+        /// <summary>Crop pan when <see cref="IconFit"/> is off. -1 top, +1 bottom.</summary>
+        public double IconOffsetY { get; set; }
 
         public string ActionType { get; set; } = KeyActionKinds.Unassigned;
 

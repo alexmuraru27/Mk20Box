@@ -5,6 +5,7 @@ using System.Linq;
 using Mk20Control.Protocol.Theme;
 using Mk20Control.Protocol.Theme.Actions;
 using Mk20Control.Protocol.Theme.Building;
+using SixLabors.ImageSharp.Processing;
 
 namespace Mk20Box.Layout
 {
@@ -77,12 +78,57 @@ namespace Mk20Box.Layout
             {
                 string name = Path.GetFileName(settings.SecondaryBackgroundPath);
 
+                if (settings.SecondaryBackgroundFit)
+                {
+                    // Whole picture: padded to the strip so nothing is cut off, which
+                    // matches how the device keeps the original proportions.
+                    byte[] padded = FitToStrip(secondary);
+                    page.AddDynamicImage(image => image.SecondaryScreenBackground(name, padded));
+                    return;
+                }
+
                 // Offsets only pan the crop; the strip's on-device rectangle is fixed.
                 double offsetX = Clamp(settings.SecondaryBackgroundOffsetX);
                 double offsetY = Clamp(settings.SecondaryBackgroundOffsetY);
 
                 page.AddDynamicImage(image =>
                     image.SecondaryScreenBackgroundAutoFit(name, secondary, offsetX, offsetY));
+            }
+        }
+
+        private const int SecondaryWidth = 428;
+        private const int SecondaryHeight = 142;
+        private const int KeyIconSize = 128;
+
+        /// <summary>
+        /// Scales the picture to fit inside the strip, keeping its proportions and
+        /// padding the rest with black. Every frame of a GIF is processed, so the
+        /// animation survives.
+        /// </summary>
+        private static byte[] FitToStrip(byte[] imageOrGifBytes)
+        {
+            using (var source = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(imageOrGifBytes))
+            {
+                source.Mutate(context => context.Resize(new SixLabors.ImageSharp.Processing.ResizeOptions
+                {
+                    Size = new SixLabors.ImageSharp.Size(SecondaryWidth, SecondaryHeight),
+                    Mode = SixLabors.ImageSharp.Processing.ResizeMode.Pad,
+                    PadColor = SixLabors.ImageSharp.Color.Black,
+                }));
+
+                using (var stream = new MemoryStream())
+                {
+                    if (source.Frames.Count > 1)
+                    {
+                        source.Save(stream, new SixLabors.ImageSharp.Formats.Gif.GifEncoder());
+                    }
+                    else
+                    {
+                        source.Save(stream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
+                    }
+
+                    return stream.ToArray();
+                }
             }
         }
 
@@ -165,6 +211,18 @@ namespace Mk20Box.Layout
             if (media != null)
             {
                 string name = Path.GetFileName(key.MediaPath);
+
+                // The builder always pads to the square, so cropping has to happen
+                // first when the user wants the picture to fill the key.
+                if (!key.IconFit)
+                {
+                    media = BackgroundImageNormalizer.ResizeToFill(
+                        media,
+                        KeyIconSize,
+                        KeyIconSize,
+                        Clamp(key.IconOffsetX),
+                        Clamp(key.IconOffsetY));
+                }
 
                 if (name.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
                 {

@@ -206,17 +206,28 @@
                                                   MouseLeftButtonDown="SecondaryBackground_MouseDown"
                                                   MouseMove="SecondaryBackground_MouseMove"
                                                   MouseLeftButtonUp="SecondaryBackground_MouseUp"
-                                                  MouseRightButtonUp="SecondaryBackground_ResetPan"
-                                                  ToolTip="Drag the picture to choose which part shows. Right-click to centre.">
-                                                <!-- Exactly the crop the composer will send. -->
-                                                <Rectangle>
-                                                    <Rectangle.Fill>
-                                                        <ImageBrush ImageSource="{Binding SelectedPage.SecondaryBackgroundPath}"
-                                                                    Viewbox="{Binding SelectedPage.SecondaryBackgroundViewbox}"
-                                                                    ViewboxUnits="RelativeToBoundingBox"
-                                                                    Stretch="Fill" />
-                                                    </Rectangle.Fill>
-                                                </Rectangle>
+                                                  ToolTip="Drag to choose which part shows. Double-click to centre, right-click for options.">
+                                                <Grid.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Click="ChooseSecondaryBackground_Click"
+                                                                  Header="Choose picture..." />
+                                                        <MenuItem Click="ClearSecondaryBackground_Click"
+                                                                  Header="Remove picture"
+                                                                  IsEnabled="{Binding SelectedPage.HasSecondaryBackground, FallbackValue=False}" />
+                                                        <Separator />
+                                                        <MenuItem Click="SecondaryFitMode_Click"
+                                                                  Header="Show whole picture"
+                                                                  IsCheckable="True"
+                                                                  IsChecked="{Binding SelectedPage.SecondaryBackgroundFit, Mode=TwoWay}"
+                                                                  IsEnabled="{Binding SelectedPage.HasSecondaryBackground, FallbackValue=False}"
+                                                                  ToolTip="Keep the original proportions. Untick to fill the screen and crop." />
+                                                    </ContextMenu>
+                                                </Grid.ContextMenu>
+
+                                                <!-- Exactly the crop the composer will send, animated for GIFs. -->
+                                                <ui:AnimatedImage SourcePath="{Binding SelectedPage.SecondaryBackgroundPath}"
+                                                                  Viewbox="{Binding SelectedPage.SecondaryBackgroundViewbox}"
+                                                                  Stretch="{Binding SelectedPage.SecondaryStretch}" />
 
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
                                                             Visibility="{Binding SelectedPage.HasSecondaryBackground, Converter={StaticResource InverseBooleanToVisibility}, FallbackValue=Visible}">
@@ -227,7 +238,7 @@
                                                     <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center"
                                                                FontSize="10"
                                                                Foreground="{StaticResource Mk20MutedTextBrush}"
-                                                               Text="428 x 142" />
+                                                               Text="right-click to add a picture" />
                                                 </StackPanel>
 
                                                 <TextBlock Margin="0,0,0,3"
@@ -273,53 +284,6 @@
                                         </ListBox>
                                     </Border>
                                 </Grid>
-                            </Border>
-
-                            <!-- Secondary screen artwork for the page on show -->
-                            <Border Grid.Row="1" Margin="0,12,0,0" Padding="10"
-                                    Background="#141B22" BorderBrush="#2A3742" BorderThickness="1">
-                                <StackPanel DataContext="{Binding SelectedPage}">
-                                    <TextBlock FontWeight="SemiBold" Text="Secondary screen background" />
-                                    <TextBlock Margin="0,2,0,8" TextWrapping="Wrap"
-                                               Foreground="{StaticResource Mk20MutedTextBrush}"
-                                               Text="Picture or GIF for the 428 x 142 strip. It is scaled to fill, so the offsets choose which part stays visible when the shape does not match." />
-
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBox Height="26" Margin="0,0,6,0"
-                                                 IsReadOnly="True"
-                                                 Text="{Binding SecondaryBackgroundPath, Mode=OneWay}" />
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                            <Button Width="70" Height="26" Margin="0,0,4,0"
-                                                    Click="ChooseSecondaryBackground_Click" Content="Picture..." />
-                                            <Button Width="60" Height="26"
-                                                    Click="ClearSecondaryBackground_Click" Content="Clear" />
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <Grid Margin="0,10,0,0"
-                                          IsEnabled="{Binding HasSecondaryBackground, FallbackValue=False}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <TextBlock VerticalAlignment="Center"
-                                                   Foreground="{StaticResource Mk20MutedTextBrush}">
-                                            <Run Text="Offset X" />
-                                            <Run Text="{Binding SecondaryBackgroundOffsetX, StringFormat={}{0:0.00}, Mode=OneWay}" />
-                                            <Run Text="   Offset Y" />
-                                            <Run Text="{Binding SecondaryBackgroundOffsetY, StringFormat={}{0:0.00}, Mode=OneWay}" />
-                                        </TextBlock>
-
-                                        <Button Grid.Column="1" Width="70" Height="26"
-                                                Click="CentreSecondaryBackground_Click" Content="Centre"
-                                                ToolTip="Put the crop back in the middle" />
-                                    </Grid>
-                                </StackPanel>
                             </Border>
 
                             <!-- Inspector: keys and encoders share this column -->
@@ -373,11 +337,35 @@
 
                                         <TextBlock Margin="0,14,0,6" FontWeight="SemiBold" Text="Icon" />
                                         <Border Height="86" BorderBrush="#3A3A3A" BorderThickness="1">
-                                            <Grid>
-                                                <Image Source="{Binding MediaPath}" Stretch="Uniform" />
+                                            <Grid x:Name="KeyIconSurface"
+                                                  Background="Transparent"
+                                                  ClipToBounds="True"
+                                                  MouseLeftButtonDown="KeyIcon_MouseDown"
+                                                  MouseMove="KeyIcon_MouseMove"
+                                                  MouseLeftButtonUp="KeyIcon_MouseUp"
+                                                  ToolTip="Drag to choose which part shows. Double-click to centre, right-click for options.">
+                                                <Grid.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Click="ChooseKeyMedia_Click" Header="Choose picture..." />
+                                                        <MenuItem Click="ClearKeyMedia_Click"
+                                                                  Header="Remove picture"
+                                                                  IsEnabled="{Binding HasMedia, FallbackValue=False}" />
+                                                        <Separator />
+                                                        <MenuItem Click="KeyIconFitMode_Click"
+                                                                  Header="Show whole picture"
+                                                                  IsCheckable="True"
+                                                                  IsChecked="{Binding IconFit, Mode=TwoWay}"
+                                                                  IsEnabled="{Binding HasMedia, FallbackValue=False}"
+                                                                  ToolTip="Keep the original proportions. Untick to fill the key and crop." />
+                                                    </ContextMenu>
+                                                </Grid.ContextMenu>
+
+                                                <ui:AnimatedImage SourcePath="{Binding MediaPath}"
+                                                                  Viewbox="{Binding IconViewbox}"
+                                                                  Stretch="{Binding IconStretch}" />
                                                 <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Foreground="{StaticResource Mk20MutedTextBrush}"
-                                                           Text="No icon assigned"
+                                                           Text="right-click to add a picture"
                                                            Visibility="{Binding HasMedia, Converter={StaticResource InverseBooleanToVisibility}}" />
                                             </Grid>
                                         </Border>

@@ -706,8 +706,16 @@ namespace Mk20Box
         private void SecondaryBackground_MouseDown(object sender, MouseButtonEventArgs e)
         {
             Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
-            if (page == null || !page.HasSecondaryBackground)
+            if (page == null || !page.HasSecondaryBackground || page.SecondaryBackgroundFit)
             {
+                return;
+            }
+
+            // Double-click re-centres, which is quicker than dragging back by eye.
+            if (e.ClickCount >= 2)
+            {
+                CentreSecondaryBackground_Click(sender, null);
+                e.Handled = true;
                 return;
             }
 
@@ -763,9 +771,82 @@ namespace Mk20Box
             Plugin.SaveSettings();
         }
 
-        private void SecondaryBackground_ResetPan(object sender, MouseButtonEventArgs e)
+        /// <summary>Dragging the icon preview pans the crop, as on the strip.</summary>
+        private void KeyIcon_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            CentreSecondaryBackground_Click(sender, null);
+            Mk20Box.Ui.DeviceKeyViewModel key = Layout == null ? null : Layout.SelectedKey;
+            if (key == null || !key.HasMedia || key.IconFit)
+            {
+                return;
+            }
+
+            if (e.ClickCount >= 2)
+            {
+                key.IconOffsetX = 0;
+                key.IconOffsetY = 0;
+                Plugin.SaveSettings();
+                e.Handled = true;
+                return;
+            }
+
+            keyIconDragOrigin = e.GetPosition(KeyIconSurface);
+            keyIconDragging = true;
+            KeyIconSurface.CaptureMouse();
+            KeyIconSurface.Cursor = System.Windows.Input.Cursors.ScrollAll;
+            e.Handled = true;
+        }
+
+        private void KeyIcon_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!keyIconDragging)
+            {
+                return;
+            }
+
+            Mk20Box.Ui.DeviceKeyViewModel key = Layout == null ? null : Layout.SelectedKey;
+            if (key == null || KeyIconSurface.ActualWidth <= 0 || KeyIconSurface.ActualHeight <= 0)
+            {
+                return;
+            }
+
+            Point current = e.GetPosition(KeyIconSurface);
+            key.PanIcon(
+                -(current.X - keyIconDragOrigin.X) / KeyIconSurface.ActualWidth,
+                -(current.Y - keyIconDragOrigin.Y) / KeyIconSurface.ActualHeight);
+
+            keyIconDragOrigin = current;
+        }
+
+        private void KeyIcon_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!keyIconDragging)
+            {
+                return;
+            }
+
+            keyIconDragging = false;
+            KeyIconSurface.ReleaseMouseCapture();
+            KeyIconSurface.Cursor = null;
+            Plugin.SaveSettings();
+        }
+
+        private void KeyIconFitMode_Click(object sender, RoutedEventArgs e)
+        {
+            if (Plugin != null && Layout != null && Layout.SelectedKey != null)
+            {
+                Plugin.SaveSettings();
+            }
+        }
+
+        private bool keyIconDragging;
+        private Point keyIconDragOrigin;
+
+        private void SecondaryFitMode_Click(object sender, RoutedEventArgs e)
+        {
+            if (Plugin != null && Layout != null && Layout.SelectedPage != null)
+            {
+                Plugin.SaveSettings();
+            }
         }
 
         private void CentreSecondaryBackground_Click(object sender, RoutedEventArgs e)

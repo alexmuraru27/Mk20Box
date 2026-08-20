@@ -18,6 +18,7 @@
 
   <!-- SimHub's own assemblies: reference, never copy. -->
   <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.11" />
     <Reference Include="GameReaderCommon">
       <HintPath>$(SIMHUB_INSTALL_PATH)GameReaderCommon.dll</HintPath>
       <Private>False</Private>

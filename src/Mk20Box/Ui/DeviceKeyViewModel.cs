@@ -198,12 +198,81 @@ namespace Mk20Box.Ui
                 }
 
                 model.MediaPath = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(HasMedia));
+                crop.Invalidate();
+                RaiseIconChanged();
             }
         }
 
         public bool HasMedia => !string.IsNullOrWhiteSpace(model.MediaPath);
+
+        private readonly CropPreview crop = new CropPreview(128, 128);
+
+        /// <summary>Whole picture padded, or filled and cropped.</summary>
+        public bool IconFit
+        {
+            get { return model.IconFit; }
+            set
+            {
+                if (model.IconFit != value)
+                {
+                    model.IconFit = value;
+                    RaiseIconChanged();
+                }
+            }
+        }
+
+        public System.Windows.Media.Stretch IconStretch => crop.StretchFor(IconFit);
+
+        public System.Windows.Rect IconViewbox =>
+            crop.Viewbox(model.MediaPath, IconFit, model.IconOffsetX, model.IconOffsetY);
+
+        public bool CanPanIcon =>
+            crop.CanPanX(model.MediaPath, IconFit) || crop.CanPanY(model.MediaPath, IconFit);
+
+        public double IconOffsetX
+        {
+            get { return model.IconOffsetX; }
+            set
+            {
+                if (Math.Abs(model.IconOffsetX - value) > 0.001)
+                {
+                    model.IconOffsetX = value;
+                    RaiseIconChanged();
+                }
+            }
+        }
+
+        public double IconOffsetY
+        {
+            get { return model.IconOffsetY; }
+            set
+            {
+                if (Math.Abs(model.IconOffsetY - value) > 0.001)
+                {
+                    model.IconOffsetY = value;
+                    RaiseIconChanged();
+                }
+            }
+        }
+
+        /// <summary>Moves the visible window by a fraction of the key, for dragging.</summary>
+        public void PanIcon(double fractionX, double fractionY)
+        {
+            IconOffsetX = CropPreview.Pan(IconOffsetX, fractionX);
+            IconOffsetY = CropPreview.Pan(IconOffsetY, fractionY);
+        }
+
+        private void RaiseIconChanged()
+        {
+            OnPropertyChanged(nameof(MediaPath));
+            OnPropertyChanged(nameof(HasMedia));
+            OnPropertyChanged(nameof(IconFit));
+            OnPropertyChanged(nameof(IconStretch));
+            OnPropertyChanged(nameof(IconViewbox));
+            OnPropertyChanged(nameof(IconOffsetX));
+            OnPropertyChanged(nameof(IconOffsetY));
+            OnPropertyChanged(nameof(CanPanIcon));
+        }
 
         public string ActionType
         {

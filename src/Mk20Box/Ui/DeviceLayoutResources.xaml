@@ -130,7 +130,10 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Image Grid.RowSpan="2" Source="{Binding MediaPath}" Stretch="UniformToFill" />
+            <ui:AnimatedImage Grid.RowSpan="2"
+                              SourcePath="{Binding MediaPath}"
+                              Viewbox="{Binding IconViewbox}"
+                              Stretch="{Binding IconStretch}" />
 
             <!-- Preview of the on-device text, in its chosen colour and position. -->
             <TextBlock Grid.RowSpan="2"
