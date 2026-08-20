@@ -76,8 +76,20 @@ namespace Mk20Box.Layout
             if (secondary != null)
             {
                 string name = Path.GetFileName(settings.SecondaryBackgroundPath);
-                page.AddDynamicImage(image => image.SecondaryScreenBackgroundAutoFit(name, secondary));
+
+                // Offsets only pan the crop; the strip's on-device rectangle is fixed.
+                double offsetX = Clamp(settings.SecondaryBackgroundOffsetX);
+                double offsetY = Clamp(settings.SecondaryBackgroundOffsetY);
+
+                page.AddDynamicImage(image =>
+                    image.SecondaryScreenBackgroundAutoFit(name, secondary, offsetX, offsetY));
             }
+        }
+
+        /// <summary>The normalizer rejects anything outside [-1, 1].</summary>
+        private static double Clamp(double offset)
+        {
+            return offset < -1 ? -1 : offset > 1 ? 1 : offset;
         }
 
         private static void AddKey(

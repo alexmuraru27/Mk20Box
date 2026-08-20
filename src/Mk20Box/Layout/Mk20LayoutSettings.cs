@@ -73,6 +73,15 @@ namespace Mk20Box.Layout
         /// <summary>Background drawn on the secondary screen, if any.</summary>
         public string SecondaryBackgroundPath { get; set; }
 
+        /// <summary>
+        /// Which part of the source survives the crop when its shape does not match the
+        /// 428x142 strip. -1 is hard left, 0 centred, +1 hard right.
+        /// </summary>
+        public double SecondaryBackgroundOffsetX { get; set; }
+
+        /// <summary>-1 is hard top, 0 centred, +1 hard bottom.</summary>
+        public double SecondaryBackgroundOffsetY { get; set; }
+
         public Mk20EncoderSettings LeftEncoder { get; set; } = new Mk20EncoderSettings();
 
         public Mk20EncoderSettings RightEncoder { get; set; } = new Mk20EncoderSettings();

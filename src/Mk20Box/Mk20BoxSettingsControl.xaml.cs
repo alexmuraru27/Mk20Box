@@ -662,6 +662,128 @@ namespace Mk20Box
                 MessageBoxImage.Information);
         }
 
+        /// <summary>Picks the artwork that fills the secondary strip.</summary>
+        private void ChooseSecondaryBackground_Click(object sender, RoutedEventArgs e)
+        {
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
+            if (page == null)
+            {
+                return;
+            }
+
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Choose a secondary screen background",
+                Filter = "Pictures and GIFs|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files|*.*",
+                CheckFileExists = true,
+            };
+
+            if (dialog.ShowDialog(Window.GetWindow(this)) == true)
+            {
+                page.SecondaryBackgroundPath = dialog.FileName;
+                Plugin.SaveSettings();
+            }
+        }
+
+        private void ClearSecondaryBackground_Click(object sender, RoutedEventArgs e)
+        {
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
+            if (page == null)
+            {
+                return;
+            }
+
+            page.SecondaryBackgroundPath = null;
+            page.SecondaryBackgroundOffsetX = 0;
+            page.SecondaryBackgroundOffsetY = 0;
+            Plugin.SaveSettings();
+        }
+
+        /// <summary>
+        /// Dragging the strip pans the crop, moving the picture with the pointer. A
+        /// full-width drag covers the whole range, so it feels like moving the photo.
+        /// </summary>
+        private void SecondaryBackground_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
+            if (page == null || !page.HasSecondaryBackground)
+            {
+                return;
+            }
+
+            secondaryDragOrigin = e.GetPosition(SecondaryScreenSurface);
+            secondaryDragging = true;
+            SecondaryScreenSurface.CaptureMouse();
+            SecondaryScreenSurface.Cursor = System.Windows.Input.Cursors.ScrollAll;
+            e.Handled = true;
+        }
+
+        private void SecondaryBackground_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!secondaryDragging)
+            {
+                return;
+            }
+
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
+            if (page == null)
+            {
+                return;
+            }
+
+            Point current = e.GetPosition(SecondaryScreenSurface);
+            double width = SecondaryScreenSurface.ActualWidth;
+            double height = SecondaryScreenSurface.ActualHeight;
+
+            if (width <= 0 || height <= 0)
+            {
+                return;
+            }
+
+            // Dragging right should reveal what is to the left, so the offset falls.
+            page.PanSecondaryBackground(
+                -(current.X - secondaryDragOrigin.X) / width,
+                -(current.Y - secondaryDragOrigin.Y) / height);
+
+            secondaryDragOrigin = current;
+        }
+
+        private void SecondaryBackground_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!secondaryDragging)
+            {
+                return;
+            }
+
+            secondaryDragging = false;
+            SecondaryScreenSurface.ReleaseMouseCapture();
+            SecondaryScreenSurface.Cursor = null;
+
+            // Saved once at the end rather than on every mouse move.
+            Plugin.SaveSettings();
+        }
+
+        private void SecondaryBackground_ResetPan(object sender, MouseButtonEventArgs e)
+        {
+            CentreSecondaryBackground_Click(sender, null);
+        }
+
+        private void CentreSecondaryBackground_Click(object sender, RoutedEventArgs e)
+        {
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
+            if (page == null || !page.HasSecondaryBackground)
+            {
+                return;
+            }
+
+            page.SecondaryBackgroundOffsetX = 0;
+            page.SecondaryBackgroundOffsetY = 0;
+            Plugin.SaveSettings();
+        }
+
+        private bool secondaryDragging;
+        private Point secondaryDragOrigin;
+
         private void GlobalProfileMode_Click(object sender, RoutedEventArgs e)
         {
             Plugin.Settings.UseGlobalProfile = UseGlobalProfileCheckBox.IsChecked == true;
