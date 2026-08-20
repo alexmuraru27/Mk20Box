@@ -771,63 +771,24 @@ namespace Mk20Box
             Plugin.SaveSettings();
         }
 
-        /// <summary>Dragging the icon preview pans the crop, as on the strip.</summary>
-        private void KeyIcon_MouseDown(object sender, MouseButtonEventArgs e)
+        /// <summary>
+        /// Right-click selects the key under the pointer first, so the menu always
+        /// acts on the key the user aimed at rather than the previous selection.
+        /// </summary>
+        private void KeyGrid_RightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            Mk20Box.Ui.DeviceKeyViewModel key = Layout == null ? null : Layout.SelectedKey;
-            if (key == null || !key.HasMedia || key.IconFit)
+            var source = e.OriginalSource as DependencyObject;
+
+            while (source != null && !(source is ListBoxItem))
             {
-                return;
+                source = System.Windows.Media.VisualTreeHelper.GetParent(source);
             }
 
-            if (e.ClickCount >= 2)
+            var item = source as ListBoxItem;
+            if (item != null)
             {
-                key.IconOffsetX = 0;
-                key.IconOffsetY = 0;
-                Plugin.SaveSettings();
-                e.Handled = true;
-                return;
+                item.IsSelected = true;
             }
-
-            keyIconDragOrigin = e.GetPosition(KeyIconSurface);
-            keyIconDragging = true;
-            KeyIconSurface.CaptureMouse();
-            KeyIconSurface.Cursor = System.Windows.Input.Cursors.ScrollAll;
-            e.Handled = true;
-        }
-
-        private void KeyIcon_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (!keyIconDragging)
-            {
-                return;
-            }
-
-            Mk20Box.Ui.DeviceKeyViewModel key = Layout == null ? null : Layout.SelectedKey;
-            if (key == null || KeyIconSurface.ActualWidth <= 0 || KeyIconSurface.ActualHeight <= 0)
-            {
-                return;
-            }
-
-            Point current = e.GetPosition(KeyIconSurface);
-            key.PanIcon(
-                -(current.X - keyIconDragOrigin.X) / KeyIconSurface.ActualWidth,
-                -(current.Y - keyIconDragOrigin.Y) / KeyIconSurface.ActualHeight);
-
-            keyIconDragOrigin = current;
-        }
-
-        private void KeyIcon_MouseUp(object sender, MouseButtonEventArgs e)
-        {
-            if (!keyIconDragging)
-            {
-                return;
-            }
-
-            keyIconDragging = false;
-            KeyIconSurface.ReleaseMouseCapture();
-            KeyIconSurface.Cursor = null;
-            Plugin.SaveSettings();
         }
 
         private void KeyIconFitMode_Click(object sender, RoutedEventArgs e)
@@ -837,9 +798,6 @@ namespace Mk20Box
                 Plugin.SaveSettings();
             }
         }
-
-        private bool keyIconDragging;
-        private Point keyIconDragOrigin;
 
         private void SecondaryFitMode_Click(object sender, RoutedEventArgs e)
         {
