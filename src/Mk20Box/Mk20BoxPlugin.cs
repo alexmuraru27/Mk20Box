@@ -12,19 +12,41 @@ namespace Mk20Box
     [PluginName("MK20Box")]
     public class Mk20BoxPlugin : IPlugin, IDataPlugin, IWPFSettingsV2
     {
+        static Mk20BoxPlugin()
+        {
+            // Must run before any MK20Control type is resolved.
+            DependencyResolver.Install();
+        }
+
         private readonly object settingsSync = new object();
         private string activeGameName = string.Empty;
         private string activeProfileName = "Default";
         private bool activeProfileIsGlobal = true;
+        private string uploadedProfileId;
         private readonly List<string> supportedGames = new List<string>();
 
         public Mk20BoxPluginSettings Settings;
+
+        /// <summary>Connection to the MK20 hardware.</summary>
+        public Mk20DeviceConnection Device { get; } = new Mk20DeviceConnection();
+
+        /// <summary>Routes device presses to macros and SimHub actions.</summary>
+        public Mk20Box.Runtime.CommandRouter Router { get; } = new Mk20Box.Runtime.CommandRouter();
 
         /// <summary>Current plugin manager instance (set by SimHub).</summary>
         public PluginManager PluginManager { get; set; }
 
         /// <summary>Left-menu icon (24x24, black/white friendly).</summary>
-        public ImageSource PictureIcon => this.ToIcon(Properties.Resources.sdkmenuicon);
+        public ImageSource PictureIcon => this.ToIcon(LoadMenuIcon());
+
+        private static System.Drawing.Bitmap LoadMenuIcon()
+        {
+            using (var stream = typeof(Mk20BoxPlugin).Assembly
+                .GetManifestResourceStream("Mk20Box.sdkmenuicon.png"))
+            {
+                return new System.Drawing.Bitmap(stream);
+            }
+        }
 
         /// <summary>Short title shown in SimHub's left menu.</summary>
         public string LeftMenuTitle => "MK20Box";
@@ -51,9 +73,143 @@ namespace Mk20Box
             this.AttachDelegate("ActiveGame", () => ActiveGameName);
             this.AttachDelegate("ActiveProfile", () => ActiveProfileName);
             this.AttachDelegate("ActiveProfileIsGlobal", () => ActiveProfileIsGlobal);
+            this.AttachDelegate("DeviceConnected", () => Device.IsConnected);
+            this.AttachDelegate("DeviceStatus", () => Device.Status);
+            this.AttachDelegate("DevicePort", () => Device.PortName ?? string.Empty);
 
             RefreshSelectedGame();
             RefreshActiveProfile();
+
+            Router.Bridge = new Mk20Box.Runtime.SimHubBridge(PluginManager, GetType())
+            {
+                InputDelayMs = Settings.InputDelayMs,
+            };
+
+            // Registers the profile's SimHub inputs so they can be mapped in
+            // Controls & Events even before the device is plugged in.
+            Router.SetActiveLayout(ActiveProfileLayout());
+
+            Device.StateChanged += DeviceStateChanged;
+
+            if (Settings.AutoConnect && !string.IsNullOrWhiteSpace(Settings.DevicePortName))
+            {
+                ConnectDeviceInBackground(Settings.DevicePortName);
+            }
+        }
+
+        /// <summary>Rebinds the router whenever the connection comes or goes.</summary>
+        private void DeviceStateChanged(object sender, EventArgs e)
+        {
+            if (Device.IsConnected)
+            {
+                Router.Attach(Device.Client);
+                Router.SetActiveLayout(ActiveProfileLayout());
+
+                // A game may already be running, so push the resolved profile now.
+                RefreshActiveProfile();
+            }
+            else
+            {
+                // Force a re-upload after reconnecting.
+                uploadedProfileId = null;
+                Router.Detach();
+            }
+        }
+
+        /// <summary>Profile that should be on the device right now.</summary>
+        public Mk20ProfileSettings ActiveProfile
+        {
+            get
+            {
+                lock (settingsSync)
+                {
+                    return ResolveActiveProfileCore();
+                }
+            }
+        }
+
+        /// <summary>Profiles offered for a game: its own, plus any unscoped ones.</summary>
+        public List<Mk20ProfileSettings> ProfilesForGame(string gameName)
+        {
+            lock (settingsSync)
+            {
+                return Settings.Profiles
+                    .Where(profile => profile != null && profile.IsForGame(gameName))
+                    .ToList();
+            }
+        }
+
+        /// <summary>Points a game at a profile, creating the binding if needed.</summary>
+        public void SetProfileForGame(string gameName, string profileId)
+        {
+            if (string.IsNullOrWhiteSpace(gameName) || string.IsNullOrWhiteSpace(profileId))
+            {
+                return;
+            }
+
+            lock (settingsSync)
+            {
+                Mk20GameProfileBindingSettings binding = Settings.FindGameProfile(gameName);
+                if (binding == null)
+                {
+                    binding = new Mk20GameProfileBindingSettings { GameName = gameName.Trim() };
+                    Settings.GameProfiles.Add(binding);
+                    Settings.SortGameProfiles();
+                }
+
+                binding.ProfileId = profileId;
+                SaveSettingsCore();
+                RefreshActiveProfileCore();
+            }
+        }
+
+        private Mk20Box.Layout.Mk20LayoutSettings ActiveProfileLayout()
+        {
+            lock (settingsSync)
+            {
+                // Must match what was uploaded, otherwise the command ids the device
+                // reports will not be found and presses are silently dropped.
+                Mk20ProfileSettings profile = ResolveActiveProfileCore();
+                return profile?.Layout;
+            }
+        }
+
+        /// <summary>
+        /// The profile that should be on the device: the global one when that mode is
+        /// on, otherwise the current game's, falling back to global.
+        /// </summary>
+        private Mk20ProfileSettings ResolveActiveProfileCore()
+        {
+            Mk20ProfileSettings globalProfile = Settings.FindProfileById(Settings.GlobalProfileId)
+                ?? Settings.Profiles.FirstOrDefault();
+
+            if (Settings.UseGlobalProfile)
+            {
+                return globalProfile;
+            }
+
+            Mk20GameProfileBindingSettings binding = Settings.FindGameProfile(activeGameName);
+            Mk20ProfileSettings gameProfile = binding == null
+                ? null
+                : Settings.FindProfileById(binding.ProfileId);
+
+            return gameProfile ?? globalProfile;
+        }
+
+        /// <summary>Connects without blocking SimHub's startup.</summary>
+        private void ConnectDeviceInBackground(string portName)
+        {
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                try
+                {
+                    await Device.ConnectAsync(portName).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    SimHub.Logging.Current.Warn($"[MK20Box] Auto-connect failed: {ex.Message}");
+                }
+            });
         }
 
         public void DataUpdate(PluginManager pluginManager, ref GameData data)
@@ -101,6 +257,8 @@ namespace Mk20Box
         public void End(PluginManager pluginManager)
         {
             SaveSettings();
+            Router.Dispose();
+            Device.DisconnectAsync().GetAwaiter().GetResult();
         }
 
         /// <summary>Settings UI shown in SimHub's left menu.</summary>
@@ -174,6 +332,75 @@ namespace Mk20Box
             }
         }
 
+        /// <summary>
+        /// Rebuilds a profile from scratch: a fresh layout with one empty page, all
+        /// twenty keys blank and both encoders unassigned.
+        /// </summary>
+        public bool ResetProfileLayout(Mk20ProfileSettings profile)
+        {
+            if (profile == null)
+            {
+                return false;
+            }
+
+            lock (settingsSync)
+            {
+                profile.Layout = Mk20Box.Layout.Mk20LayoutSettings.CreateDefault();
+                SaveSettingsCore();
+                RefreshActiveProfileCore();
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Composes a profile's layout into a theme and uploads it. The theme name is
+        /// derived from the profile so each profile keeps its own on the device.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> SendProfileToDeviceAsync(Mk20ProfileSettings profile)
+        {
+            if (profile == null)
+            {
+                return false;
+            }
+
+            Mk20Box.Layout.Mk20LayoutSettings layout;
+            lock (settingsSync)
+            {
+                layout = profile.Layout ?? Mk20Box.Layout.Mk20LayoutSettings.CreateDefault();
+            }
+
+            Mk20Control.Protocol.Theme.ThemeFile theme = Mk20Box.Layout.ThemeComposer.Compose(layout);
+            SaveSettings();
+
+            // Composition assigns any missing command ids, so reindex before uploading.
+            Router.SetActiveLayout(layout);
+
+            bool uploaded = await Device.UploadThemeAsync(ThemeNameFor(profile), theme).ConfigureAwait(false);
+
+            if (uploaded)
+            {
+                // Counts as the profile now on the device, so auto-upload won't repeat it.
+                uploadedProfileId = profile.Id;
+            }
+
+            return uploaded;
+        }
+
+        /// <summary>Device theme names allow a limited character set, so keep it simple.</summary>
+        private static string ThemeNameFor(Mk20ProfileSettings profile)
+        {
+            string name = (profile.Name ?? "profile").Trim();
+            var safe = new System.Text.StringBuilder();
+
+            foreach (char character in name)
+            {
+                safe.Append(char.IsLetterOrDigit(character) ? character : '-');
+            }
+
+            string result = safe.ToString().Trim('-');
+            return result.Length == 0 ? "mk20box" : "mk20box-" + result;
+        }
+
         public Mk20GameProfileBindingSettings AddGameProfile(string gameName)
         {
             string normalizedGameName = (gameName ?? string.Empty).Trim();
@@ -244,23 +471,12 @@ namespace Mk20Box
 
         private void RefreshActiveProfileCore()
         {
-            if (Settings.UseGlobalProfile)
-            {
-                ApplyProfile(Settings.FindProfileById(Settings.GlobalProfileId), true);
-                return;
-            }
+            Mk20ProfileSettings profile = ResolveActiveProfileCore();
+            bool isGlobal = Settings.UseGlobalProfile
+                || Settings.FindGameProfile(activeGameName) == null
+                || profile == null;
 
-            Mk20GameProfileBindingSettings binding = Settings.FindGameProfile(activeGameName);
-            Mk20ProfileSettings profile = binding == null
-                ? null
-                : Settings.FindProfileById(binding.ProfileId);
-            if (profile == null)
-            {
-                ApplyProfile(Settings.FindProfileById(Settings.GlobalProfileId), true);
-                return;
-            }
-
-            ApplyProfile(profile, false);
+            ApplyProfile(profile, isGlobal);
         }
 
         private void ApplyProfile(Mk20ProfileSettings profile, bool isGlobal)
@@ -269,6 +485,49 @@ namespace Mk20Box
             activeProfileName = profile == null || string.IsNullOrWhiteSpace(profile.Name)
                 ? "Default"
                 : profile.Name.Trim();
+
+            AutoUploadProfile(profile);
+        }
+
+        /// <summary>
+        /// Pushes the resolved profile to the device when the active one changes, so
+        /// starting a game swaps the keypad without any manual upload. Skipped when the
+        /// same profile is already on the device.
+        /// </summary>
+        private void AutoUploadProfile(Mk20ProfileSettings profile)
+        {
+            if (profile == null || !Settings.AutoUploadProfile || !Device.IsConnected)
+            {
+                return;
+            }
+
+            if (string.Equals(uploadedProfileId, profile.Id, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            uploadedProfileId = profile.Id;
+
+            // Off the caller's thread: this runs from DataUpdate and takes settingsSync.
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                try
+                {
+                    if (await SendProfileToDeviceAsync(profile).ConfigureAwait(false))
+                    {
+                        SimHub.Logging.Current.Info(
+                            $"[MK20Box] Loaded profile '{profile.Name}' for '{activeGameName}'");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    SimHub.Logging.Current.Warn(
+                        $"[MK20Box] Could not load profile '{profile.Name}': {ex.Message}");
+
+                    // Let the next change retry.
+                    uploadedProfileId = null;
+                }
+            });
         }
     }
 }

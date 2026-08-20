@@ -7,6 +7,25 @@ namespace Mk20Box
     /// </summary>
     public partial class Mk20BoxPluginSettings
     {
+        /// <summary>Serial port the MK20 is attached to, e.g. "COM7".</summary>
+        public string DevicePortName { get; set; }
+
+        /// <summary>Connect to the device automatically when SimHub starts.</summary>
+        public bool AutoConnect { get; set; } = true;
+
+        /// <summary>
+        /// Pause between emitted keystrokes and typed characters. Games that poll the
+        /// keyboard miss input sent faster than their poll rate; raise this if a macro
+        /// loses or reorders characters.
+        /// </summary>
+        public int InputDelayMs { get; set; } = Mk20Box.Runtime.SimHubBridge.DefaultInputDelayMs;
+
+        /// <summary>
+        /// Upload the resolved profile to the device whenever it changes, for example
+        /// when a game starts. Turn off to keep uploads manual.
+        /// </summary>
+        public bool AutoUploadProfile { get; set; } = true;
+
         public bool UseGlobalProfile { get; set; } = true;
 
         public string GlobalProfileId { get; set; }
@@ -19,5 +38,8 @@ namespace Mk20Box
 
         // Kept for migration from the initial profile implementation.
         public string DefaultProfileName { get; set; } = "Default";
+
+        /// <summary>Set once the one-time move to per-game profiles has run.</summary>
+        public bool ProfilesScopedToGames { get; set; }
     }
 }

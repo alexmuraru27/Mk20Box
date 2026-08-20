@@ -4,20 +4,493 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:styles="clr-namespace:SimHub.Plugins.Styles;assembly=SimHub.Plugins"
+             xmlns:ui="clr-namespace:Mk20Box.Ui"
              mc:Ignorable="d">
+    <UserControl.Resources>
+        <ResourceDictionary Source="pack://application:,,,/Mk20Box;component/Ui/DeviceLayoutResources.xaml" />
+    </UserControl.Resources>
     <ScrollViewer>
         <styles:SHSection Title="MK20BOX" ShowSeparator="True">
             <StackPanel>
-                <Button x:Name="ProfilesMenuButton"
-                        Width="140" Height="34"
-                        HorizontalAlignment="Left"
-                        Click="ToggleProfilesMenu_Click"
-                        Content="Profiles" />
-                <Border x:Name="ProfilesMenuPanel"
-                        Margin="0,8,0,0" Padding="12"
-                        BorderBrush="#555555" BorderThickness="1"
-                        Visibility="Collapsed">
-                    <StackPanel MaxWidth="900">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="DeviceMenuButton"
+                            Width="140" Height="34"
+                            Margin="0,0,8,0"
+                            Click="ToggleDeviceMenu_Click"
+                            Content="Device" />
+                    <Button x:Name="LayoutMenuButton"
+                            Width="140" Height="34"
+                            Margin="0,0,8,0"
+                            Click="ToggleLayoutMenu_Click"
+                            Content="Device layout" />
+                    <Button x:Name="ProfilesMenuButton"
+                            Width="140" Height="34"
+                            Click="ToggleProfilesMenu_Click"
+                            Content="Profiles" />
+                </StackPanel>
+
+                <Border x:Name="DeviceMenuPanel" Style="{StaticResource Mk20SectionBorderStyle}">
+                    <StackPanel>
+                        <Border Style="{StaticResource Mk20SectionHeaderBorderStyle}">
+                            <TextBlock Style="{StaticResource Mk20SectionHeaderTextStyle}" Text="DEVICE" />
+                        </Border>
+                        <StackPanel MaxWidth="900" Margin="12">
+                        <TextBlock Margin="0,0,0,12" Opacity="0.7" TextWrapping="Wrap"
+                                   Text="Choose the serial port the MK20 is connected to. The port is remembered, and SimHub reconnects to it on start." />
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock VerticalAlignment="Center"
+                                       FontWeight="SemiBold"
+                                       Text="COM port" />
+                            <ComboBox x:Name="DevicePortCombo"
+                                      Grid.Column="1" Height="30"
+                                      SelectionChanged="DevicePortChanged" />
+                            <Button x:Name="RefreshPortsButton"
+                                    Grid.Column="2"
+                                    Height="30" Margin="8,0,0,0" Padding="10,0"
+                                    Click="RefreshPorts_Click"
+                                    Content="Refresh" />
+                        </Grid>
+
+                        <WrapPanel Margin="0,0,0,12">
+                            <Button x:Name="ConnectButton"
+                                    Height="30" Margin="0,0,8,0" Padding="14,0"
+                                    Click="ConnectDevice_Click"
+                                    Content="Connect" />
+                            <Button x:Name="DisconnectButton"
+                                    Height="30" Margin="0,0,8,0" Padding="14,0"
+                                    Click="DisconnectDevice_Click"
+                                    Content="Disconnect" />
+                            <CheckBox x:Name="AutoConnectCheckBox"
+                                      VerticalAlignment="Center"
+                                      Click="AutoConnect_Click"
+                                      Content="Connect automatically on start" />
+                            <CheckBox x:Name="AutoUploadCheckBox"
+                                      VerticalAlignment="Center" Margin="16,0,0,0"
+                                      Click="AutoUpload_Click"
+                                      Content="Load matching profile when a game starts" />
+                            <TextBlock VerticalAlignment="Center" Margin="16,0,6,0"
+                                       Text="Macro key delay (ms)" />
+                            <TextBox x:Name="InputDelayTextBox"
+                                     Width="52" Height="26"
+                                     VerticalContentAlignment="Center"
+                                     TextChanged="InputDelay_TextChanged"
+                                     ToolTip="Pause between keystrokes and typed characters. Raise this if a macro loses or reorders characters." />
+                        </WrapPanel>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Margin="0,0,8,0" FontWeight="SemiBold" Text="Status:" />
+                            <TextBlock x:Name="DeviceStatusText" Grid.Column="1" TextWrapping="Wrap" />
+                        </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="LayoutMenuPanel" Style="{StaticResource Mk20SectionBorderStyle}">
+                    <StackPanel>
+                        <Border Style="{StaticResource Mk20SectionHeaderBorderStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Mk20SectionHeaderTextStyle}" Text="DEVICE LAYOUT" />
+                                <TextBlock x:Name="EditingProfileText"
+                                           Style="{StaticResource Mk20SectionHeaderTextStyle}"
+                                           Opacity="0.75" />
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Margin="12">
+                        <TextBlock Margin="0,0,0,12" Opacity="0.7" TextWrapping="Wrap"
+                                   Text="Lay out the keys for the selected profile. Pages step through with previous/next; a folder is opened from a key on its parent page and returns with the bottom-right key." />
+
+                        <StackPanel x:Name="LayoutEditor">
+
+                        <!-- Page bar: pages are numbered, folders are reached through keys -->
+                        <Grid Margin="0,0,0,12">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Width="30" Height="30"
+                                        Command="{Binding PreviousPageCommand}"
+                                        Content="&lt;" ToolTip="Previous page" />
+                                <Border Width="110" Height="30" Margin="6,0"
+                                        Background="#0D141B" BorderBrush="#2E3B47" BorderThickness="1"
+                                        CornerRadius="4">
+                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               FontWeight="SemiBold"
+                                               Text="{Binding PageIndicator}" />
+                                </Border>
+                                <Button Width="30" Height="30" Margin="0,0,6,0"
+                                        Command="{Binding NextPageCommand}"
+                                        Content="&gt;" ToolTip="Next page" />
+
+                                <Button Width="76" Height="30" Margin="0,0,14,0"
+                                        Command="{Binding GoBackCommand}"
+                                        Content="&#x21B0; Back"
+                                        IsEnabled="{Binding CanGoBack}"
+                                        ToolTip="Leave this folder" />
+
+                                <Button Width="86" Height="30" Margin="0,0,4,0"
+                                        Command="{Binding AddPageCommand}" Content="Add page" />
+                                <Button Width="94" Height="30" Margin="0,0,14,0"
+                                        Command="{Binding DeletePageCommand}" Content="Delete page" />
+
+                                <Button x:Name="SendToDeviceButton"
+                                        Width="120" Height="30" Margin="0,0,14,0"
+                                        Click="SendToDevice_Click"
+                                        Content="Send to device"
+                                        ToolTip="Build this profile's theme and upload it to the MK20" />
+
+                                <TextBlock VerticalAlignment="Center"
+                                           Foreground="{StaticResource Mk20MutedTextBrush}"
+                                           Text="{Binding BreadcrumbText}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Device schematic + inspector -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="360" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Width="560" Height="540"
+                                    Background="{StaticResource Mk20ShellBrush}"
+                                    BorderBrush="{StaticResource Mk20ShellBorderBrush}"
+                                    BorderThickness="2"
+                                    CornerRadius="26">
+                                <Grid Margin="20">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="112" />
+                                        <RowDefinition Height="12" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Encoders flanking the secondary display -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="88" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="88" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Button Click="SelectLeftEncoder_Click"
+                                                    Style="{StaticResource Mk20EncoderStyle}"
+                                                    ToolTip="Left encoder - click to configure" />
+                                            <TextBlock Margin="0,5,0,0" HorizontalAlignment="Center"
+                                                       FontSize="10"
+                                                       Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                       Text="ENCODER 1" />
+                                        </StackPanel>
+
+                                        <Border Grid.Column="1" Margin="8,2"
+                                                Background="{StaticResource Mk20SecondaryScreenBrush}"
+                                                BorderBrush="{StaticResource Mk20SecondaryScreenBorderBrush}"
+                                                BorderThickness="2"
+                                                CornerRadius="8">
+                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock HorizontalAlignment="Center"
+                                                           FontSize="11" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource Mk20AccentBrush}"
+                                                           Text="SECONDARY DISPLAY" />
+                                                <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center"
+                                                           FontSize="10"
+                                                           Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                           Text="428 x 142" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Button Click="SelectRightEncoder_Click"
+                                                    Style="{StaticResource Mk20EncoderStyle}"
+                                                    ToolTip="Right encoder - click to configure" />
+                                            <TextBlock Margin="0,5,0,0" HorizontalAlignment="Center"
+                                                       FontSize="10"
+                                                       Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                       Text="ENCODER 2" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- 4 x 5 key grid -->
+                                    <Border Grid.Row="2" Padding="6"
+                                            Background="{StaticResource Mk20GridBackgroundBrush}"
+                                            BorderBrush="{StaticResource Mk20GridBorderBrush}"
+                                            BorderThickness="2"
+                                            CornerRadius="13">
+                                        <ListBox x:Name="KeyGrid"
+                                                 Background="Transparent" BorderThickness="0"
+                                                 ItemContainerStyle="{StaticResource Mk20KeyStyle}"
+                                                 ItemTemplate="{StaticResource Mk20KeyTemplate}"
+                                                 ItemsSource="{Binding SelectedPage.Keys}"
+                                                 MouseDoubleClick="KeyGrid_MouseDoubleClick"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                 SelectedItem="{Binding SelectedKey, Mode=TwoWay}"
+                                                 ToolTip="Double-click a navigation key to follow it">
+                                            <ListBox.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="5" Rows="4" />
+                                                </ItemsPanelTemplate>
+                                            </ListBox.ItemsPanel>
+                                        </ListBox>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <!-- Inspector: keys and encoders share this column -->
+                            <StackPanel Grid.Column="2">
+
+                                <!-- KEY -->
+                                <StackPanel Visibility="{Binding ShowsKeyInspector, Converter={StaticResource BooleanToVisibility}}">
+                                    <StackPanel DataContext="{Binding SelectedKey}">
+                                        <TextBlock FontSize="15" FontWeight="SemiBold" Text="{Binding Name}" />
+                                        <TextBlock Margin="0,2,0,0"
+                                                   Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                   Text="{Binding Position}" />
+
+                                        <TextBlock Margin="0,14,0,4" FontWeight="SemiBold" Text="Button text" />
+                                        <TextBox Height="26"
+                                                 Text="{Binding Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <Grid Margin="0,6,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="6" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="6" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Colour" />
+                                            <ComboBox x:Name="TitleColorCombo"
+                                                      Grid.Row="1" Height="26"
+                                                      DisplayMemberPath="Key"
+                                                      SelectedValuePath="Value"
+                                                      SelectedValue="{Binding TitleColor, Mode=TwoWay}"
+                                                      SelectionChanged="KeyStyleChanged" />
+
+                                            <TextBlock Grid.Column="2" Margin="0,0,0,2" Opacity="0.7" Text="Size" />
+                                            <ComboBox x:Name="TitleSizeCombo"
+                                                      Grid.Row="1" Grid.Column="2" Height="26"
+                                                      SelectedItem="{Binding TitleFontSize, Mode=TwoWay}"
+                                                      SelectionChanged="KeyStyleChanged" />
+
+                                            <TextBlock Grid.Column="4" Margin="0,0,0,2" Opacity="0.7" Text="Position" />
+                                            <ComboBox x:Name="TitlePositionCombo"
+                                                      Grid.Row="1" Grid.Column="4" Height="26"
+                                                      SelectedItem="{Binding TitlePosition, Mode=TwoWay}"
+                                                      SelectionChanged="KeyStyleChanged" />
+                                        </Grid>
+
+                                        <TextBlock Margin="0,14,0,6" FontWeight="SemiBold" Text="Icon" />
+                                        <Border Height="86" BorderBrush="#3A3A3A" BorderThickness="1">
+                                            <Grid>
+                                                <Image Source="{Binding MediaPath}" Stretch="Uniform" />
+                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                           Text="No icon assigned"
+                                                           Visibility="{Binding HasMedia, Converter={StaticResource InverseBooleanToVisibility}}" />
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <WrapPanel Margin="0,8,0,0">
+                                        <Button Width="96" Height="28" Margin="0,0,4,0"
+                                                Click="ChooseKeyMedia_Click" Content="Library..." />
+                                        <Button Width="62" Height="28" Margin="0,0,4,0"
+                                                Click="BrowseKeyMedia_Click" Content="File..." />
+                                        <Button Width="62" Height="28"
+                                                Click="ClearKeyMedia_Click" Content="Clear" />
+                                    </WrapPanel>
+
+                                    <TextBlock Margin="0,16,0,6" FontWeight="SemiBold" Text="Action" />
+                                    <ComboBox Height="30"
+                                              ItemsSource="{Binding ActionTypes}"
+                                              SelectedItem="{Binding SelectedKey.ActionType, Mode=TwoWay}" />
+
+                                    <!-- Keystroke: recorded, not picked from a list -->
+                                    <StackPanel Visibility="{Binding SelectedKey.SendsKeystroke, Converter={StaticResource BooleanToVisibility}}">
+                                        <TextBlock Margin="0,12,0,4" FontWeight="SemiBold" Text="Keystroke" />
+                                        <ui:KeystrokeRecorder x:Name="KeyKeystrokeRecorder"
+                                                              Height="30"
+                                                              Keystroke="{Binding SelectedKey.Keystroke, Mode=TwoWay}"
+                                                              Recorded="KeystrokeRecorded" />
+                                        <TextBlock Margin="0,6,0,0"
+                                                   Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                   Text="Sent by the device itself, so it still works when SimHub is closed."
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <!-- Macro: replayed by the plugin -->
+                                    <StackPanel Visibility="{Binding SelectedKey.RunsMacro, Converter={StaticResource BooleanToVisibility}}">
+                                        <TextBlock Margin="0,12,0,4" FontWeight="SemiBold" Text="Steps" />
+                                        <ListBox x:Name="MacroStepList"
+                                                 Height="150"
+                                                 ItemsSource="{Binding SelectedKey.MacroSteps}"
+                                                 DisplayMemberPath="Description" />
+                                        <!-- Row 1: add steps. Row 2: reorder and remove. -->
+                                        <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                                            <TextBlock Margin="0,0,8,0" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                       Text="Add:" />
+                                            <Button Width="62" Height="26" Margin="0,0,4,0"
+                                                    Click="AddMacroKeystroke_Click" Content="Key" />
+                                            <Button Width="62" Height="26" Margin="0,0,4,0"
+                                                    Click="AddMacroText_Click" Content="Text" />
+                                            <Button Width="62" Height="26" Margin="0,0,4,0"
+                                                    Click="AddMacroDelay_Click" Content="Wait" />
+                                            <Button Width="62" Height="26"
+                                                    Click="AddMacroAction_Click" Content="Action" />
+                                        </StackPanel>
+
+                                        <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                                            <Button Width="30" Height="26" Margin="0,0,4,0"
+                                                    Click="MoveMacroStepUp_Click" Content="&#x2191;"
+                                                    ToolTip="Move step up" />
+                                            <Button Width="30" Height="26" Margin="0,0,4,0"
+                                                    Click="MoveMacroStepDown_Click" Content="&#x2193;"
+                                                    ToolTip="Move step down" />
+                                            <Button Width="72" Height="26"
+                                                    Click="RemoveMacroStep_Click" Content="Remove" />
+                                        </StackPanel>
+
+                                        <!-- Editor for whichever step is selected above -->
+                                        <Border Margin="0,10,0,0" Padding="10"
+                                                Background="#141B22" BorderBrush="#2A3742" BorderThickness="1">
+                                            <Grid>
+                                                <TextBlock Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                           Text="Select a step above to edit it."
+                                                           Visibility="{Binding SelectedItem, ElementName=MacroStepList, Converter={StaticResource NullToVisibility}}" />
+
+                                                <StackPanel DataContext="{Binding SelectedItem, ElementName=MacroStepList}"
+                                                            Visibility="{Binding SelectedItem, ElementName=MacroStepList, Converter={StaticResource NotNullToVisibility}}">
+                                                    <StackPanel Visibility="{Binding IsKeystroke, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                        <TextBlock Margin="0,0,0,4" FontWeight="SemiBold" Text="Key to press" />
+                                                        <ui:KeystrokeRecorder Height="30"
+                                                                              Keystroke="{Binding Keystroke, Mode=TwoWay}"
+                                                                              Recorded="MacroStepChanged" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Visibility="{Binding IsText, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                        <TextBlock Margin="0,0,0,4" FontWeight="SemiBold" Text="Text to type" />
+                                                        <TextBox Height="26"
+                                                                 Text="{Binding Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Visibility="{Binding IsDelay, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                        <TextBlock Margin="0,0,0,4" FontWeight="SemiBold" Text="Wait (milliseconds)" />
+                                                        <TextBox Height="26"
+                                                                 Text="{Binding DelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Visibility="{Binding IsSimHubAction, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                        <TextBlock Margin="0,0,0,4" FontWeight="SemiBold" Text="SimHub action name" />
+                                                        <TextBox Height="26"
+                                                                 Text="{Binding ActionName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <TextBlock Margin="0,6,0,0"
+                                                   Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                   Text="Steps run top to bottom when the device reports the press."
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <!-- SimHub action / input -->
+                                    <StackPanel Visibility="{Binding SelectedKey.IsHostRouted, Converter={StaticResource BooleanToVisibility}}">
+                                        <TextBlock Margin="0,12,0,4" FontWeight="SemiBold" Text="Name" />
+                                        <TextBox Height="26"
+                                                 Text="{Binding SelectedKey.ActionTarget, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+
+                                    <!-- Folder owned by this key -->
+                                    <StackPanel Visibility="{Binding SelectedKey.OpensFolder, Converter={StaticResource BooleanToVisibility}}">
+                                        <Border Margin="0,12,0,0" Padding="10"
+                                                Background="#141B22" BorderBrush="#2A3742" BorderThickness="1">
+                                            <TextBlock Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                       Text="This key opens its own folder. Double-click the key on the grid to go inside, then use Back to return."
+                                                       TextWrapping="Wrap" />
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- ENCODER -->
+                                <StackPanel DataContext="{Binding SelectedEncoder}"
+                                            Visibility="{Binding DataContext.ShowsEncoderInspector, ElementName=LayoutMenuPanel, Converter={StaticResource BooleanToVisibility}}">
+                                    <TextBlock FontSize="15" FontWeight="SemiBold" Text="{Binding Name}" />
+                                    <TextBlock Margin="0,2,0,0"
+                                               Foreground="{StaticResource Mk20MutedTextBrush}"
+                                               Text="Configured per page" />
+
+                                    <TextBlock Margin="0,14,0,4" FontWeight="SemiBold" Text="Mode" />
+                                    <ComboBox Height="30"
+                                              ItemsSource="{Binding Modes}"
+                                              SelectedItem="{Binding Mode, Mode=TwoWay}" />
+
+                                    <StackPanel Visibility="{Binding UsesFunction, Converter={StaticResource BooleanToVisibility}}">
+                                        <TextBlock Margin="0,12,0,4" FontWeight="SemiBold" Text="Function" />
+                                        <ComboBox Height="30"
+                                                  ItemsSource="{Binding Functions}"
+                                                  SelectedItem="{Binding Function, Mode=TwoWay}" />
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding UsesKeystrokes, Converter={StaticResource BooleanToVisibility}}">
+                                        <TextBlock Margin="0,12,0,4" FontWeight="SemiBold" Text="Rotate left" />
+                                        <ui:KeystrokeRecorder Height="30" Keystroke="{Binding RotateLeft, Mode=TwoWay}" />
+                                        <TextBlock Margin="0,8,0,4" FontWeight="SemiBold" Text="Click" />
+                                        <ui:KeystrokeRecorder Height="30" Keystroke="{Binding Click, Mode=TwoWay}" />
+                                        <TextBlock Margin="0,8,0,4" FontWeight="SemiBold" Text="Rotate right" />
+                                        <ui:KeystrokeRecorder Height="30" Keystroke="{Binding RotateRight, Mode=TwoWay}" />
+                                        <TextBlock Margin="0,8,0,0"
+                                                   Foreground="{StaticResource Mk20MutedTextBrush}"
+                                                   Text="Recommended for sim racing: bind these keys in the game or in SimHub."
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding ShowsDirectionWarning, Converter={StaticResource BooleanToVisibility}}">
+                                        <TextBlock Margin="0,12,0,4" FontWeight="SemiBold" Text="Command id" />
+                                        <TextBox Height="26"
+                                                 Text="{Binding CommandId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        <Border Margin="0,8,0,0" Padding="8"
+                                                Background="#3A2A12" BorderBrush="#7A5A22" BorderThickness="1">
+                                            <TextBlock Foreground="#E8C48A"
+                                                       Text="The device reports one event for left, right and click alike, so rotation direction cannot be told apart. Use keystrokes if direction matters."
+                                                       TextWrapping="Wrap" />
+                                        </Border>
+                                    </StackPanel>
+
+                                    <Button Height="28" Margin="0,14,0,0" Padding="10,0"
+                                            HorizontalAlignment="Left"
+                                            Click="BackToKeys_Click"
+                                            Content="Back to keys" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                        </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="ProfilesMenuPanel" Style="{StaticResource Mk20SectionBorderStyle}">
+                    <StackPanel>
+                        <Border Style="{StaticResource Mk20SectionHeaderBorderStyle}">
+                            <TextBlock Style="{StaticResource Mk20SectionHeaderTextStyle}" Text="PROFILES" />
+                        </Border>
+                        <StackPanel MaxWidth="900" Margin="12">
                 <TextBlock Margin="0,0,0,12" Opacity="0.7" TextWrapping="Wrap"
                            Text="Create reusable profiles, then select one globally or bind one to each game selected in SimHub." />
 
@@ -38,106 +511,47 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="160" />
                         <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <CheckBox x:Name="UseGlobalProfileCheckBox"
-                              Grid.Column="1" Margin="0,0,0,8"
-                              IsChecked="{Binding UseGlobalProfile, Mode=TwoWay}"
-                              Click="GlobalProfileMode_Click"
-                              Content="Use the global profile for every game" />
-
-                    <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="Global profile" />
-                    <ComboBox x:Name="GlobalProfileCombo"
-                              Grid.Row="1" Grid.Column="1"
-                              ItemsSource="{Binding Profiles}"
-                              DisplayMemberPath="Name"
-                              SelectedValuePath="Id"
-                              SelectionChanged="ProfileSelectionChanged"
-                              SelectedValue="{Binding GlobalProfileId, Mode=TwoWay}" />
-                </Grid>
-
-                <Separator Margin="0,0,0,12" />
-
-                <TextBlock Margin="0,0,0,6" FontWeight="SemiBold" Text="Profile library" />
-                <Grid Margin="0,0,0,12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="160" />
-                        <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock VerticalAlignment="Center" Text="Existing profile" />
-                    <ComboBox x:Name="ProfileLibraryCombo"
-                              Grid.Column="1" Margin="0,0,6,8"
-                              ItemsSource="{Binding Profiles}"
-                              DisplayMemberPath="Name" />
-                    <Button Grid.Column="2" Margin="0,0,0,8" Padding="10,4"
-                            Click="DeleteProfile_Click" Content="Delete" />
+                    <CheckBox x:Name="UseGlobalProfileCheckBox"
+                              Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,8"
+                              IsChecked="{Binding UseGlobalProfile, Mode=TwoWay}"
+                              Click="GlobalProfileMode_Click"
+                              Content="Use one profile for every game" />
 
-                    <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="New profile name" />
+                    <TextBlock x:Name="ProfileForGameLabel"
+                               Grid.Row="1" Margin="0,0,8,8" VerticalAlignment="Center"
+                               Text="Profile" />
+                    <ComboBox x:Name="ActiveProfileCombo"
+                              Grid.Row="1" Grid.Column="1" Height="30" Margin="0,0,6,8"
+                              ItemsSource="{Binding Profiles}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Id"
+                              SelectionChanged="ActiveProfileChanged" />
+                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,8" Orientation="Horizontal">
+                        <Button Margin="0,0,6,0" Padding="10,4"
+                                Click="ResetProfile_Click" Content="Reset"
+                                ToolTip="Clear this profile back to an empty layout" />
+                        <Button Padding="10,4"
+                                Click="DeleteProfile_Click" Content="Delete" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="New profile name" />
                     <TextBox x:Name="NewProfileNameTextBox"
-                             Grid.Row="1" Grid.Column="1" Margin="0,0,6,0" />
-                    <Button Grid.Row="1" Grid.Column="2" Padding="10,4"
+                             Grid.Row="2" Grid.Column="1" Height="26" Margin="0,0,6,0" />
+                    <Button Grid.Row="2" Grid.Column="2" Padding="10,4"
                             Click="CreateProfile_Click" Content="Create" />
                 </Grid>
 
-                <Separator Margin="0,0,0,12" />
-
-                <TextBlock Margin="0,0,0,12" Opacity="0.7" TextWrapping="Wrap"
-                           Text="When global mode is off, each configured game uses its selected profile. Unconfigured games fall back to the global profile." />
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="260" />
-                        <ColumnDefinition Width="20" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel>
-                        <TextBlock Margin="0,0,0,6" FontWeight="SemiBold" Text="Configured games" />
-                        <ListBox x:Name="GameBindingsList"
-                                 Height="150"
-                                 ItemsSource="{Binding GameProfiles}"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                 DisplayMemberPath="GameName" />
-
-                        <ComboBox x:Name="SupportedGamesCombo"
-                                  Height="30" Margin="0,8,0,6"
-                                  IsEditable="False"
-                                  IsTextSearchEnabled="True" />
-                        <WrapPanel>
-                            <Button Margin="0,0,6,0" Padding="10,4"
-                                    Click="AddGame_Click" Content="Add game" />
-                            <Button Padding="10,4"
-                                    Click="RemoveGame_Click" Content="Remove" />
-                        </WrapPanel>
-                    </StackPanel>
-
-                    <Grid Grid.Column="2" VerticalAlignment="Top">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="Profile" />
-                        <ComboBox x:Name="GameProfileCombo"
-                                  Grid.Column="1" Height="30" VerticalAlignment="Top"
-                                  ItemsSource="{Binding Profiles}"
-                                  DisplayMemberPath="Name"
-                                  SelectedValuePath="Id"
-                                  SelectionChanged="ProfileSelectionChanged"
-                                  SelectedValue="{Binding SelectedItem.ProfileId, ElementName=GameBindingsList, Mode=TwoWay}" />
-                    </Grid>
-                </Grid>
+                <TextBlock x:Name="ProfileHintText"
+                           Opacity="0.7" TextWrapping="Wrap" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
             </StackPanel>
