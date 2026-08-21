@@ -918,6 +918,12 @@
                               SelectionChanged="ActiveProfileChanged" />
                     <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,8" Orientation="Horizontal">
                         <Button Margin="0,0,6,0" Padding="10,4"
+                                Click="ExportProfile_Click" Content="Export"
+                                ToolTip="Save this profile to a file, with its pictures, so it can be shared" />
+                        <Button Margin="0,0,6,0" Padding="10,4"
+                                Click="ImportProfile_Click" Content="Import"
+                                ToolTip="Add a profile someone shared with you" />
+                        <Button Margin="0,0,6,0" Padding="10,4"
                                 Click="ResetProfile_Click" Content="Reset"
                                 ToolTip="Clear this profile back to an empty layout" />
                         <Button Padding="10,4"

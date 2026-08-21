@@ -23,7 +23,6 @@ namespace Mk20Box
             NormalizeProfiles();
             SortProfiles();
             MigrateGameBindings();
-            ScopeProfilesToGames();
             SortGameProfiles();
 
             Mk20ProfileSettings globalProfile = FindProfileById(GlobalProfileId);
@@ -197,41 +196,6 @@ namespace Mk20Box
             }
         }
 
-        /// <summary>
-        /// One-time move to per-game profiles: a profile used by exactly one game
-        /// becomes that game's. Anything shared by several games, or used by none,
-        /// is left unscoped so it stays available everywhere.
-        /// </summary>
-        private void ScopeProfilesToGames()
-        {
-            if (ProfilesScopedToGames)
-            {
-                return;
-            }
-
-            ProfilesScopedToGames = true;
-
-            foreach (Mk20ProfileSettings profile in Profiles)
-            {
-                if (!string.IsNullOrWhiteSpace(profile.GameName))
-                {
-                    continue;
-                }
-
-                string[] games = GameProfiles
-                    .Where(binding => binding != null
-                        && string.Equals(binding.ProfileId, profile.Id, StringComparison.OrdinalIgnoreCase))
-                    .Select(binding => binding.GameName)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
-
-                if (games.Length == 1)
-                {
-                    profile.GameName = games[0];
-                }
-            }
-        }
-
         private bool HasDuplicateProfileId(Mk20ProfileSettings candidate)
         {
             int matches = 0;
@@ -253,7 +217,6 @@ namespace Mk20Box
     {
         private string id;
         private string name;
-        private string gameName;
 
         public string Id
         {
@@ -265,22 +228,6 @@ namespace Mk20Box
         {
             get => name;
             set => SetField(ref name, value);
-        }
-
-        /// <summary>
-        /// Game this profile belongs to. Empty means it is shared and offered for
-        /// every game, which is what old profiles stay as.
-        /// </summary>
-        public string GameName
-        {
-            get => gameName;
-            set => SetField(ref gameName, value);
-        }
-
-        public bool IsForGame(string game)
-        {
-            return string.IsNullOrWhiteSpace(GameName)
-                || string.Equals(GameName, game, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>Key layout for this profile; composed into a .theme on save.</summary>

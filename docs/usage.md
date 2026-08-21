@@ -116,13 +116,31 @@ device sends the same event for both directions and the click.
 ## Profiles
 
 A profile is a complete named layout. **Use one profile for every game** applies
-one everywhere; turn it off to bind a profile per game, chosen from SimHub's own
-game list.
+one everywhere; turn it off to choose which profile each game uses, picked from
+SimHub's own game list.
+
+Profiles are not tied to a game — every profile is offered for every game, so
+the same layout can be reused wherever it suits.
 
 MK20Box follows the game selected in SimHub and, with **Upload profile
 automatically** on, sends the matching profile to the device.
 
 **Reset all settings** clears everything and asks twice.
+
+### Sharing profiles
+
+**Export** writes the selected profile to a `.mk20profile` file. The file
+carries the pictures the profile uses, so it works on someone else's machine —
+icons from the bundled library are referenced rather than copied, which keeps a
+typical export to a few kilobytes.
+
+**Import** adds a shared profile alongside your own. It never overwrites: the
+profile gets a new id, and a clashing name gains a suffix, so importing the same
+file twice gives you two copies. Imported pictures are unpacked to
+`%LOCALAPPDATA%\Mk20Box\SharedMedia`.
+
+An imported profile behaves like any other: it is available for every game. Bind
+it to one above if you want it loaded automatically.
 
 ## Properties exposed to SimHub
 

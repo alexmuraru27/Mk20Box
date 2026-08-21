@@ -204,14 +204,12 @@ namespace Mk20Box
             }
         }
 
-        /// <summary>Profiles offered for a game: its own, plus any unscoped ones.</summary>
+        /// <summary>Every profile. Any of them can be used with any game.</summary>
         public List<Mk20ProfileSettings> ProfilesForGame(string gameName)
         {
             lock (settingsSync)
             {
-                return Settings.Profiles
-                    .Where(profile => profile != null && profile.IsForGame(gameName))
-                    .ToList();
+                return Settings.Profiles.Where(profile => profile != null).ToList();
             }
         }
 
@@ -268,14 +266,6 @@ namespace Mk20Box
             Mk20ProfileSettings gameProfile = binding == null
                 ? null
                 : Settings.FindProfileById(binding.ProfileId);
-
-            // With per-game profiles, an unbound or stale binding should still land on
-            // this game's own profile rather than another game's.
-            if (gameProfile == null && !string.IsNullOrWhiteSpace(activeGameName))
-            {
-                gameProfile = Settings.Profiles.FirstOrDefault(profile =>
-                    string.Equals(profile.GameName, activeGameName, StringComparison.OrdinalIgnoreCase));
-            }
 
             return gameProfile ?? globalProfile;
         }
@@ -444,12 +434,8 @@ namespace Mk20Box
                         continue;
                     }
 
-                    // Prefer another profile belonging to the same game; falling straight
-                    // back to the global one would show another game's profile here.
-                    Mk20ProfileSettings replacement = Settings.Profiles
-                        .FirstOrDefault(candidate => candidate.IsForGame(binding.GameName));
-
-                    binding.ProfileId = (replacement ?? fallback).Id;
+                    // Any profile suits any game, so the fallback is simply the first.
+                    binding.ProfileId = fallback.Id;
                 }
 
                 SaveSettingsCore();

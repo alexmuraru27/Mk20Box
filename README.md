@@ -28,6 +28,7 @@ MK20Box makes all of it useful while you drive.
 | **Live telemetry** | Speed, gear, RPM, fuel, tyre temps — anything SimHub reports, on the strip |
 | **Real keystrokes** | The device sends them itself, so they work even with SimHub minimised |
 | **Per-game profiles** | ETS2 gets truck controls, iRacing gets pit controls, switched automatically |
+| **Shareable** | Export a profile to a file — pictures included — and send it to a friend |
 | **Pages & folders** | Twenty keys is never enough. Nest them |
 | **530+ icons** | A sim-racing icon set is built in, or drop in your own picture or GIF |
 | **Encoders** | Volume, brightness, media — or a different keystroke per direction |

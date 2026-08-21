@@ -38,8 +38,5 @@ namespace Mk20Box
 
         // Kept for migration from the initial profile implementation.
         public string DefaultProfileName { get; set; } = "Default";
-
-        /// <summary>Set once the one-time move to per-game profiles has run.</summary>
-        public bool ProfilesScopedToGames { get; set; }
     }
 }

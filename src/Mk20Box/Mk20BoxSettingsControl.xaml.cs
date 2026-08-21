@@ -438,12 +438,11 @@ namespace Mk20Box
 
             Mk20ProfileSettings profile = Plugin.AddProfile(NewProfileNameTextBox.Text);
 
-            // New profiles belong to the game on screen, unless one profile is shared
-            // by everything, in which case scoping it would hide it.
+            // A new profile is available to every game; it only becomes the one in
+            // use for the game on screen.
             if (!Plugin.Settings.UseGlobalProfile
                 && !string.IsNullOrWhiteSpace(Plugin.ActiveGameName))
             {
-                profile.GameName = Plugin.ActiveGameName;
                 Plugin.SetProfileForGame(Plugin.ActiveGameName, profile.Id);
             }
             else
@@ -457,6 +456,108 @@ namespace Mk20Box
             RefreshProfileChoices();
             LoadLayoutForActiveProfile();
             UpdateStatus();
+        }
+
+        /// <summary>
+        /// Writes the selected profile, with its pictures, to a file others can import.
+        /// </summary>
+        private void ExportProfile_Click(object sender, RoutedEventArgs e)
+        {
+            var profile = ActiveProfileCombo.SelectedItem as Mk20ProfileSettings;
+            if (profile == null)
+            {
+                MessageBox.Show(
+                    "Select a profile to export.",
+                    "MK20Box",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Export profile",
+                Filter = Mk20Box.Runtime.ProfileTransfer.FileFilter,
+                FileName = Mk20Box.Runtime.ProfileTransfer.SuggestFileName(profile),
+                DefaultExt = Mk20Box.Runtime.ProfileTransfer.FileExtension,
+                AddExtension = true,
+            };
+
+            if (dialog.ShowDialog(Window.GetWindow(this)) != true)
+            {
+                return;
+            }
+
+            try
+            {
+                Mk20Box.Runtime.ProfileTransfer.Export(profile, dialog.FileName);
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(
+                    "Could not export the profile." + Environment.NewLine + Environment.NewLine + error.Message,
+                    "MK20Box",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            var exported = new System.IO.FileInfo(dialog.FileName);
+
+            MessageBox.Show(
+                "Exported \"" + profile.Name + "\" (" + (exported.Length / 1024) + " KB)."
+                    + Environment.NewLine + Environment.NewLine
+                    + "The file carries its pictures, so it works on another machine.",
+                "MK20Box",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        /// <summary>Adds a profile from a shared file, alongside the existing ones.</summary>
+        private void ImportProfile_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Import profile",
+                Filter = Mk20Box.Runtime.ProfileTransfer.FileFilter,
+                CheckFileExists = true,
+            };
+
+            if (dialog.ShowDialog(Window.GetWindow(this)) != true)
+            {
+                return;
+            }
+
+            Mk20ProfileSettings imported;
+
+            try
+            {
+                imported = Mk20Box.Runtime.ProfileTransfer.Import(dialog.FileName, Plugin.Settings);
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(
+                    "Could not import the profile." + Environment.NewLine + Environment.NewLine + error.Message,
+                    "MK20Box",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            Plugin.SaveSettings();
+
+            profileSelectionKey = null;
+            RefreshProfileChoices();
+            LoadLayoutForActiveProfile();
+            UpdateStatus();
+
+            MessageBox.Show(
+                "Imported \"" + imported.Name + "\"."
+                    + Environment.NewLine + Environment.NewLine
+                    + "Select it above to use it, then press Send to device.",
+                "MK20Box",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
 
         private void DeleteProfile_Click(object sender, RoutedEventArgs e)
@@ -492,6 +593,17 @@ namespace Mk20Box
             // The deleted profile may have been the one in use, so let the next status
             // pass re-resolve rather than trusting the cached selection.
             profileSelectionKey = null;
+
+            // Artwork that came in with an imported profile is now orphaned.
+            try
+            {
+                Mk20Box.Runtime.ProfileTransfer.RemoveUnusedMedia(Plugin.Settings);
+            }
+            catch (Exception)
+            {
+                // Tidying up is never worth failing a delete over.
+            }
+
             RefreshProfileChoices();
             LoadLayoutForActiveProfile();
             UpdateStatus();
@@ -511,16 +623,12 @@ namespace Mk20Box
             bool global = Plugin.Settings.UseGlobalProfile;
             string game = Plugin.ActiveGameName;
 
-            List<Mk20ProfileSettings> choices = global
-                ? Plugin.Settings.Profiles.ToList()
-                : Plugin.ProfilesForGame(game);
+            // Every profile suits every game, so the same list is offered either way.
+            List<Mk20ProfileSettings> choices = Plugin.Settings.Profiles.ToList();
 
             Mk20ProfileSettings active = Plugin.ActiveProfile;
 
-            // Only offer it here if it really belongs to this game; otherwise a
-            // fallback to another game's profile would leak into this list.
-            if (active != null && !choices.Contains(active)
-                && (global || active.IsForGame(game)))
+            if (active != null && !choices.Contains(active))
             {
                 choices.Add(active);
             }
@@ -533,8 +641,7 @@ namespace Mk20Box
                 ? "Every game uses this profile. Untick above to give each game its own."
                 : string.IsNullOrWhiteSpace(game)
                     ? "Select a game in SimHub to choose the profile it should use."
-                    : "Showing profiles for " + game
-                        + ". New profiles are added to this game; change the game in SimHub to edit another.";
+                    : "Choosing the profile " + game + " will use. Any profile can be used by any game.";
 
             updatingProfileSelection = true;
             try

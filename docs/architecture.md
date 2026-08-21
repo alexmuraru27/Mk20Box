@@ -58,9 +58,19 @@ The clock is pushed the same way — the device has no real-time clock.
 
 ## Profiles
 
-Profiles are stored in SimHub's own plugin settings, scoped by game name. The
-plugin follows `PluginManager.GameName` and reads SimHub's `Configuration.Games`
-registry, so game names are never typed by hand.
+Profiles are stored in SimHub's own plugin settings. A profile is not owned by a
+game: `GameProfiles` maps a game name to a profile id, so any profile can be
+used by any game. The plugin follows `PluginManager.GameName` and reads SimHub's
+`Configuration.Games` registry, so game names are never typed by hand.
+
+`ProfileTransfer` handles sharing. A `.mk20profile` file is a zip holding
+`profile.json` plus a `media/` folder, because profiles store artwork as
+absolute paths that mean nothing on another machine. On export each path is
+rewritten to either `lib:` (a bundled icon, referenced so it is not copied) or
+`pkg:` (embedded, named by content hash so duplicates are stored once). Import
+reverses that, unpacking to `%LOCALAPPDATA%\Mk20Box\SharedMedia` since the
+SimHub folder is usually not writable, and assigns a new profile id so an
+import can never overwrite existing work.
 
 ## Editor
 
