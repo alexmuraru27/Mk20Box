@@ -103,8 +103,11 @@
       <SimHub>\Mk20Box\*.dll        private dependencies, bound by DependencyResolver
 
     Nothing SimHub ships is ever overwritten.
+
+    Opt-in, so an ordinary build never writes into the SimHub installation.
+    Use deploy.ps1, or pass -p:DeployToSimHub=true.
   -->
-  <Target Name="CopyToSimHub" AfterTargets="Build">
+  <Target Name="CopyToSimHub" AfterTargets="Build" Condition="'$(DeployToSimHub)' == 'true'">
     <PropertyGroup>
       <SimHubDir>$(SIMHUB_INSTALL_PATH)</SimHubDir>
       <SimHubPluginDir>$(SimHubDir)Mk20Box\</SimHubPluginDir>
