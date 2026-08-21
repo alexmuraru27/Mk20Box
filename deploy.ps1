@@ -105,6 +105,14 @@ if (-not (Test-Path $staging)) {
 
 Write-Step "Deploying to $simHub"
 
+# The asset library is ours alone, so it is replaced rather than merged: a file
+# renamed, moved or dropped since the last deploy would otherwise linger and be
+# picked up by the icon browser alongside its replacement.
+$deployedAssets = Join-Path $simHub 'Mk20Box\Mk20Assets'
+if (Test-Path $deployedAssets) {
+    Remove-Item $deployedAssets -Recurse -Force
+}
+
 $copied = 0
 
 foreach ($file in Get-ChildItem $staging -Recurse -File) {

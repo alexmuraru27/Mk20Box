@@ -4,23 +4,17 @@ Comprehensive 128x128 transparent PNG icon set for sim-racing / virtual-trucking
 button-box functions, curated for **iRacing**, **Assetto Corsa Competizione**,
 **Le Mans Ultimate**, **Assetto Corsa EVO**, and **Euro Truck Simulator 2 /
 American Truck Simulator**. The layered, high-contrast artwork combines
-function-specific pictograms, category-color LED accents, hardware details,
-and compact labels. Transparent backgrounds allow each button's configured
-background color to remain visible.
+function-specific pictograms, category-color LED accents, and hardware
+details. The label area is left blank so each key's own **Button text** can be
+placed there, and transparent backgrounds allow the configured background
+color to remain visible.
 
-**Total: 292 labeled icons across 12 categories.**
+**Total: 292 icons across 12 categories.**
 
 Location: `src/Mk20Box/Mk20Assets/SimRacingIcons/<Category>/<key>.png`
 
-## No-Text Variants
-
-The no-text collection contains **242 artwork variants** so users can add
-their own labels. The pictogram, category frame, separator, accent colors, and
-transparency are unchanged. The original collection deduplicates identical
-artwork; the bindable-control expansion keeps one filename per action so each
-labeled icon always has a directly discoverable no-text counterpart.
-
-Location: `src/Mk20Box/Mk20Assets/SimRacingIconsNoText/<key>.png`
+The Label column below is the suggested wording for a key's **Button text**;
+it is not drawn into the PNG.
 
 ## Blank Templates
 

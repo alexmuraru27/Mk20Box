@@ -124,9 +124,15 @@
 
     <Copy SourceFiles="@(PluginAssembly)" DestinationFolder="$(SimHubDir)" />
     <Copy SourceFiles="@(PrivateDependency)" DestinationFolder="$(SimHubPluginDir)" />
+
+    <!--
+      The asset library is ours alone, so it is replaced rather than merged: a
+      file renamed, moved or dropped since the last deploy would otherwise
+      linger and be picked up by the icon browser alongside its replacement.
+    -->
+    <RemoveDir Directories="$(SimHubPluginDir)Mk20Assets" />
     <Copy SourceFiles="@(AssetFile)"
-          DestinationFiles="@(AssetFile->'$(SimHubPluginDir)Mk20Assets\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+          DestinationFiles="@(AssetFile->'$(SimHubPluginDir)Mk20Assets\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="$(ProjectDir)Languages\Mk20Box.resx"
           DestinationFolder="$(SimHubDir)Languages\" />
 
