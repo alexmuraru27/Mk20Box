@@ -24,6 +24,22 @@ namespace Mk20Box.Ui
 
         public string Description => model.Describe();
 
+        /// <summary>Outlines this widget on the screen preview while it is being edited.</summary>
+        public bool IsSelected
+        {
+            get { return isSelected; }
+            set
+            {
+                if (isSelected != value)
+                {
+                    isSelected = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private bool isSelected;
+
         private Mk20TextWidget AsText => model as Mk20TextWidget;
 
         private Mk20OutlineTextWidget AsOutline => model as Mk20OutlineTextWidget;
@@ -255,8 +271,6 @@ namespace Mk20Box.Ui
                 OnPropertyChanged(nameof(DigitGroupMargin));
             }
         }
-
-        public bool HasFontSize => IsText;
 
         // ---- outline text only -----------------------------------------------------
 
@@ -513,7 +527,6 @@ namespace Mk20Box.Ui
             OnPropertyChanged(nameof(IsBar));
             OnPropertyChanged(nameof(IsClock));
             OnPropertyChanged(nameof(ShowsText));
-            OnPropertyChanged(nameof(HasFontSize));
             OnPropertyChanged(nameof(Text));
             OnPropertyChanged(nameof(Unit));
             OnPropertyChanged(nameof(FontSize));

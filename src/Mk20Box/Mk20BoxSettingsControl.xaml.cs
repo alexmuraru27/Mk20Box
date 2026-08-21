@@ -322,6 +322,15 @@ namespace Mk20Box
             Layout.SelectEncoder(Layout.SelectedPage?.LeftEncoder);
         }
 
+        /// <summary>Clicking any key brings the panel back to the key editor.</summary>
+        private void KeyGrid_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (Layout != null)
+            {
+                Layout.SelectKeyInspector();
+            }
+        }
+
         private void SelectRightEncoder_Click(object sender, RoutedEventArgs e)
         {
             Layout.SelectEncoder(Layout.SelectedPage?.RightEncoder);
@@ -704,6 +713,11 @@ namespace Mk20Box
         /// </summary>
         private void SecondaryBackground_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (Layout != null)
+            {
+                Layout.SelectSecondaryScreen();
+            }
+
             Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SecondaryPage;
             if (page == null || !page.HasSecondaryBackground || page.SecondaryBackgroundFit)
             {
@@ -888,6 +902,28 @@ namespace Mk20Box
             {
                 WidgetKindCombo.ItemsSource = Mk20Box.Layout.WidgetKinds.All;
             }
+
+            HighlightSelectedWidget();
+        }
+
+        /// <summary>Marks the edited widget on the screen preview and clears the rest.</summary>
+        private void HighlightSelectedWidget()
+        {
+            if (Layout == null)
+            {
+                return;
+            }
+
+            var chosen = WidgetList == null ? null : WidgetList.SelectedItem as Mk20Box.Ui.WidgetViewModel;
+
+            // Every page, so a highlight cannot linger on one left behind.
+            foreach (Mk20Box.Ui.ThemePageViewModel page in Layout.Pages)
+            {
+                foreach (Mk20Box.Ui.WidgetViewModel widget in page.Widgets)
+                {
+                    widget.IsSelected = ReferenceEquals(widget, chosen);
+                }
+            }
         }
 
         private void WidgetColorChanged(object sender, RoutedPropertyChangedEventArgs<System.Windows.Media.Color?> e)
@@ -971,6 +1007,11 @@ namespace Mk20Box
             if (widget == null)
             {
                 return;
+            }
+
+            if (Layout != null)
+            {
+                Layout.SelectSecondaryScreen();
             }
 
             WidgetList.SelectedItem = widget;

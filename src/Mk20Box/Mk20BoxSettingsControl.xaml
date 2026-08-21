@@ -153,20 +153,19 @@
                             </StackPanel>
                         </Grid>
 
-                        <!-- Device schematic + inspector -->
+                        <!-- Device schematic + the panel for whatever is being edited -->
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <!-- Pinned to the schematic's width: an Auto column would be
-                                     resized by the widget editor below, moving the device -->
-                                <ColumnDefinition Width="560" />
+                                <!-- Both pinned: an Auto column would be resized by the
+                                     panel's content and move the schematic -->
+                                <ColumnDefinition Width="470" />
                                 <ColumnDefinition Width="16" />
-                                <ColumnDefinition Width="360" />
+                                <ColumnDefinition Width="470" />
                             </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
 
+                            <!-- Scaled down as a whole, so every part keeps its proportions
+                                 and the drag maths still works in the unscaled space -->
+                            <Viewbox Width="470" HorizontalAlignment="Left" VerticalAlignment="Top">
                             <Border Width="560" Height="540"
                                     HorizontalAlignment="Left"
                                     Background="{StaticResource Mk20ShellBrush}"
@@ -235,13 +234,9 @@
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
                                                             Visibility="{Binding SecondaryPage.HasSecondaryBackground, Converter={StaticResource InverseBooleanToVisibility}, FallbackValue=Visible}">
                                                     <TextBlock HorizontalAlignment="Center"
-                                                               FontSize="11" FontWeight="SemiBold"
-                                                               Foreground="{StaticResource Mk20AccentBrush}"
-                                                               Text="SECONDARY DISPLAY" />
-                                                    <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center"
                                                                FontSize="10"
                                                                Foreground="{StaticResource Mk20MutedTextBrush}"
-                                                               Text="right-click to add a picture" />
+                                                               Text="click to edit, right-click to add a picture" />
                                                 </StackPanel>
 
                                                 <TextBlock Margin="0,0,0,3"
@@ -275,6 +270,16 @@
                                                                       MouseMove="Widget_MouseMove"
                                                                       MouseLeftButtonUp="Widget_MouseUp"
                                                                       ToolTip="{Binding Description}">
+                                                                    <!-- Marks the widget being edited, so the list and
+                                                                         the screen always agree -->
+                                                                    <Rectangle Margin="-3"
+                                                                               Fill="#2624C8B0"
+                                                                               RadiusX="3" RadiusY="3"
+                                                                               Stroke="{StaticResource Mk20AccentBrush}"
+                                                                               StrokeDashArray="3 2"
+                                                                               StrokeThickness="1.5"
+                                                                               Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}" />
+
                                                                     <!-- A bar is a filled box; text draws itself -->
                                                                     <Border Background="#5A000000"
                                                                             BorderBrush="{Binding Brush}" BorderThickness="1"
@@ -349,6 +354,7 @@
                                                  ItemTemplate="{StaticResource Mk20KeyTemplate}"
                                                  ItemsSource="{Binding SelectedPage.Keys}"
                                                  MouseDoubleClick="KeyGrid_MouseDoubleClick"
+                                                 PreviewMouseLeftButtonDown="KeyGrid_PreviewMouseDown"
                                                  PreviewMouseRightButtonDown="KeyGrid_RightButtonDown"
                                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
@@ -379,38 +385,35 @@
                                     </Border>
                                 </Grid>
                             </Border>
+                            </Viewbox>
 
-                            <!-- Widgets shown on the secondary screen -->
-                            <Border Grid.Row="1" Margin="0,12,0,0" Padding="10"
-                                    Background="#141B22" BorderBrush="#2A3742" BorderThickness="1">
-                                <StackPanel DataContext="{Binding SecondaryPage}">
-                                    <Border Margin="0,0,0,8" Padding="8,5"
+                            <!-- Active operation panel: follows whatever is clicked on the device -->
+                            <Border Grid.Column="2" Padding="12"
+                                    Background="#141B22" BorderBrush="#2A3742" BorderThickness="1"
+                                    CornerRadius="6">
+                                <StackPanel>
+                                    <Border Margin="0,0,0,10" Padding="8,5"
                                             Background="#182430" CornerRadius="3">
                                         <TextBlock FontWeight="SemiBold"
                                                    Foreground="{StaticResource Mk20AccentBrush}"
-                                                   Text="SECONDARY SCREEN WIDGETS" />
+                                                   Text="{Binding ActiveInspectorTitle}" />
                                     </Border>
 
-                                    <CheckBox Margin="0,0,0,6"
-                                              Click="GlobalSecondaryScreen_Click"
-                                              Content="Use one secondary screen for every page and folder"
-                                              DataContext="{Binding DataContext, ElementName=LayoutMenuPanel}"
-                                              IsChecked="{Binding GlobalSecondaryScreen, Mode=TwoWay}"
-                                              ToolTip="The picture and widgets from page 1 are copied onto every page when the layout is built." />
+                                    <!-- SECONDARY SCREEN -->
+                                    <StackPanel Visibility="{Binding ShowsSecondaryInspector, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                        <TextBlock Margin="0,0,0,8" Opacity="0.7" TextWrapping="Wrap"
+                                                   Text="Show live SimHub values on the small screen: speed, fuel, TC, ABS and anything else the game reports." />
 
-                                    <TextBlock Margin="0,0,0,8" Opacity="0.7" TextWrapping="Wrap"
-                                               Text="Show live SimHub values on the small screen: speed, fuel, TC, ABS and anything else the game reports." />
+                                        <CheckBox Margin="0,0,0,10"
+                                                  Click="GlobalSecondaryScreen_Click"
+                                                  Content="Use one screen for every page and folder"
+                                                  IsChecked="{Binding GlobalSecondaryScreen, Mode=TwoWay}"
+                                                  ToolTip="The picture and widgets from page 1 are copied onto every page when the layout is built." />
 
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="210" />
-                                            <ColumnDefinition Width="10" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <StackPanel>
+                                        <StackPanel DataContext="{Binding SecondaryPage}">
+                                            <TextBlock Margin="0,0,0,3" Opacity="0.7" Text="Widgets" />
                                             <ListBox x:Name="WidgetList"
-                                                     Height="150"
+                                                     Height="104"
                                                      DisplayMemberPath="Description"
                                                      ItemsSource="{Binding Widgets}"
                                                      SelectionChanged="WidgetSelected" />
@@ -422,7 +425,10 @@
                                             </WrapPanel>
                                         </StackPanel>
 
-                                        <Grid Grid.Column="2" DataContext="{Binding SelectedItem, ElementName=WidgetList}">
+                                        <Border Height="1" Margin="0,10"
+                                                Background="{StaticResource Mk20GridBorderBrush}" />
+
+                                        <Grid DataContext="{Binding SelectedItem, ElementName=WidgetList}">
                                             <TextBlock Opacity="0.6"
                                                        Text="Add a widget, or select one to edit it."
                                                        Visibility="{Binding Converter={StaticResource NullToVisibility}}" />
@@ -480,9 +486,9 @@
                                                              Text="{Binding Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                                 </StackPanel>
 
-                                                <!-- Text and bar only; a clock has no value to format -->
+                                                <!-- Text only: a bar draws no number and a clock formats its own -->
                                                 <Grid Margin="0,8,0,0"
-                                                      Visibility="{Binding IsClock, Converter={StaticResource InverseBooleanToVisibility}, FallbackValue=Visible}">
+                                                      Visibility="{Binding IsText, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="6" />
@@ -499,15 +505,13 @@
                                                     <TextBox Grid.Row="1" Height="26"
                                                              Text="{Binding Decimals, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-                                                    <StackPanel Grid.Column="2" Grid.RowSpan="2"
-                                                                Visibility="{Binding IsText, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                    <StackPanel Grid.Column="2" Grid.RowSpan="2">
                                                         <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Unit" />
                                                         <TextBox Height="26"
                                                                  Text="{Binding Unit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                                     </StackPanel>
 
-                                                    <StackPanel Grid.Column="4" Grid.RowSpan="2"
-                                                                Visibility="{Binding HasFontSize, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                    <StackPanel Grid.Column="4" Grid.RowSpan="2">
                                                         <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Text size" />
                                                         <TextBox Height="26"
                                                                  Text="{Binding FontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -531,11 +535,11 @@
                                                             <RowDefinition Height="Auto" />
                                                         </Grid.RowDefinitions>
 
-                                                        <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Minimum" />
+                                                        <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="MinValue" />
                                                         <TextBox Grid.Row="1" Height="26"
                                                                  Text="{Binding Minimum, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-                                                        <TextBlock Grid.Column="2" Margin="0,0,0,2" Opacity="0.7" Text="Maximum" />
+                                                        <TextBlock Grid.Column="2" Margin="0,0,0,2" Opacity="0.7" Text="MaxValue" />
                                                         <TextBox Grid.Row="1" Grid.Column="2" Height="26"
                                                                  Text="{Binding Maximum, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -641,10 +645,7 @@
                                                                    SelectedColorChanged="WidgetColorChanged" />
                                             </StackPanel>
                                         </Grid>
-                                    </Grid>
-                                </StackPanel>
-                            </Border>
-                            <StackPanel Grid.Column="2">
+                                    </StackPanel>
 
                                 <!-- KEY -->
                                 <StackPanel Visibility="{Binding ShowsKeyInspector, Converter={StaticResource BooleanToVisibility}}">
@@ -858,7 +859,8 @@
                                             Click="BackToKeys_Click"
                                             Content="Back to keys" />
                                 </StackPanel>
-                            </StackPanel>
+                                </StackPanel>
+                            </Border>
                         </Grid>
                         </StackPanel>
                         </StackPanel>

@@ -28,6 +28,7 @@ namespace Mk20Box.Ui
         private ThemePageViewModel selectedPage;
         private DeviceKeyViewModel selectedKey;
         private EncoderViewModel selectedEncoder;
+        private bool secondarySelected;
 
         public DeviceLayoutViewModel(Mk20LayoutSettings settings)
         {
@@ -188,10 +189,11 @@ namespace Mk20Box.Ui
                 {
                     if (selectedKey != null)
                     {
+                        secondarySelected = false;
                         SelectedEncoder = null;
                     }
 
-                    OnPropertyChanged(nameof(ShowsKeyInspector));
+                    RaiseInspectorChanged();
                 }
             }
         }
@@ -228,19 +230,73 @@ namespace Mk20Box.Ui
             {
                 if (SetField(ref selectedEncoder, value))
                 {
-                    OnPropertyChanged(nameof(ShowsKeyInspector));
-                    OnPropertyChanged(nameof(ShowsEncoderInspector));
+                    RaiseInspectorChanged();
                 }
             }
         }
 
-        public bool ShowsKeyInspector => selectedEncoder == null;
+        public bool ShowsKeyInspector => !secondarySelected && selectedEncoder == null;
 
-        public bool ShowsEncoderInspector => selectedEncoder != null;
+        public bool ShowsEncoderInspector => !secondarySelected && selectedEncoder != null;
+
+        /// <summary>The strip's own editor, opened by clicking the screen on the schematic.</summary>
+        public bool ShowsSecondaryInspector => secondarySelected;
+
+        /// <summary>Names whatever the right-hand panel is currently editing.</summary>
+        public string ActiveInspectorTitle
+        {
+            get
+            {
+                if (secondarySelected)
+                {
+                    return "SECONDARY SCREEN";
+                }
+
+                return selectedEncoder != null ? "ENCODER" : "KEY";
+            }
+        }
+
+        /// <summary>Switches the panel to the strip. Clearing the encoder keeps one thing active.</summary>
+        public void SelectSecondaryScreen()
+        {
+            if (secondarySelected)
+            {
+                return;
+            }
+
+            secondarySelected = true;
+            selectedEncoder = null;
+            OnPropertyChanged(nameof(SelectedEncoder));
+            RaiseInspectorChanged();
+        }
+
+        /// <summary>Returns the panel to the key editor when a key is clicked.</summary>
+        public void SelectKeyInspector()
+        {
+            if (!secondarySelected && selectedEncoder == null)
+            {
+                return;
+            }
+
+            secondarySelected = false;
+            selectedEncoder = null;
+            OnPropertyChanged(nameof(SelectedEncoder));
+            RaiseInspectorChanged();
+        }
 
         public void SelectEncoder(EncoderViewModel encoder)
         {
+            secondarySelected = false;
             SelectedEncoder = encoder;
+            RaiseInspectorChanged();
+        }
+
+        private void RaiseInspectorChanged()
+        {
+            OnPropertyChanged(nameof(ShowsKeyInspector));
+            OnPropertyChanged(nameof(ShowsEncoderInspector));
+            OnPropertyChanged(nameof(ShowsSecondaryInspector));
+            OnPropertyChanged(nameof(ActiveInspectorTitle));
         }
 
         /// <summary>Runs a key the way the device would. Returns true when it navigated.</summary>
