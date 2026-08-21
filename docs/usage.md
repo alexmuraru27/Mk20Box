@@ -28,6 +28,24 @@ Click a key.
 **Device actions keep working with SimHub minimised or closed.** Plugin actions
 need MK20Box running.
 
+### Copying and clearing keys
+
+| | |
+|---|---|
+| **Copy key** — `Ctrl+C` | Remembers the key's picture, text and action |
+| **Paste key** — `Ctrl+V` | Gives the selected key that picture, text and action |
+| **Reset key** — `Del` | Clears it back to blank and unassigned |
+
+All three are on the right-click menu too. A copied key can be pasted onto any
+key, on any page, folder or profile — handy for building a row of similar keys.
+
+Pasting keeps the target key's own cell and gives it a fresh internal id, so the
+copy and the original never answer for each other's presses.
+
+Pasting onto a key that opens a folder, or resetting one, asks first when that
+folder has anything in it. The folder itself is kept, but nothing opens it any
+more — the same as changing the action by hand.
+
 ## Pages and folders
 
 Twenty keys fills up fast, so a layout can hold as many screens as you like.

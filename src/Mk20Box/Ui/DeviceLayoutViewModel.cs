@@ -299,6 +299,83 @@ namespace Mk20Box.Ui
             OnPropertyChanged(nameof(ActiveInspectorTitle));
         }
 
+        /// <summary>
+        /// The key most recently copied, shared by every editor instance so a key can
+        /// be pasted after switching page, folder or profile. Held as a detached copy,
+        /// so editing the key it came from cannot change what will be pasted.
+        /// </summary>
+        private static Mk20KeySettings copiedKey;
+
+        /// <summary>True once something has been copied, so Paste can be offered.</summary>
+        public static bool HasCopiedKey => copiedKey != null;
+
+        /// <summary>Remembers a key's look and action for pasting onto another key.</summary>
+        public void CopyKey(DeviceKeyViewModel key)
+        {
+            if (key == null)
+            {
+                return;
+            }
+
+            copiedKey = key.Model.Snapshot();
+        }
+
+        /// <summary>
+        /// Gives a key the copied look and action. The key keeps its own cell and is
+        /// issued a fresh command id, so the two never answer for each other.
+        /// </summary>
+        public bool PasteKey(DeviceKeyViewModel key)
+        {
+            if (key == null || copiedKey == null)
+            {
+                return false;
+            }
+
+            key.ApplyFrom(copiedKey);
+
+            // A pasted folder key arrives without a folder, so it gets its own.
+            EnsureFolderForKey(key);
+
+            NotifyChanged();
+            return true;
+        }
+
+        /// <summary>Clears a key back to blank and unassigned.</summary>
+        public bool ResetKey(DeviceKeyViewModel key)
+        {
+            if (key == null)
+            {
+                return false;
+            }
+
+            key.ResetToDefault();
+            NotifyChanged();
+            return true;
+        }
+
+        /// <summary>
+        /// True when the folder a key opens has anything worth keeping, so the editor
+        /// can warn before the key stops pointing at it.
+        /// </summary>
+        public bool FolderHasContent(DeviceKeyViewModel key)
+        {
+            if (key == null || string.IsNullOrEmpty(key.TargetPageId))
+            {
+                return false;
+            }
+
+            ThemePageViewModel folder = Pages.FirstOrDefault(page => page.Id == key.TargetPageId);
+            if (folder == null)
+            {
+                return false;
+            }
+
+            // Every folder is born with a return key, so that alone is not content.
+            return folder.Keys.Any(candidate =>
+                candidate.ActionType != KeyActionKinds.OneLevelUp
+                && (candidate.HasAction || candidate.HasMedia || candidate.HasTitle));
+        }
+
         /// <summary>Runs a key the way the device would. Returns true when it navigated.</summary>
         public bool ActivateKey(DeviceKeyViewModel key)
         {

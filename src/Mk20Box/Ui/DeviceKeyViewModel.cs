@@ -372,5 +372,57 @@ namespace Mk20Box.Ui
             OnPropertyChanged(nameof(NavigationGlyph));
             OnPropertyChanged(nameof(HasNavigationGlyph));
         }
+
+        /// <summary>Takes on a copied key's look and action, keeping this key's cell.</summary>
+        public void ApplyFrom(Mk20KeySettings source)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            model.ApplyFrom(source);
+            ReloadFromModel();
+        }
+
+        /// <summary>Clears the key back to blank and unassigned.</summary>
+        public void ResetToDefault()
+        {
+            model.Reset();
+            ReloadFromModel();
+        }
+
+        /// <summary>
+        /// Re-reads every value from the model after it was replaced wholesale, which
+        /// property setters alone cannot announce.
+        /// </summary>
+        private void ReloadFromModel()
+        {
+            MacroSteps.Clear();
+            foreach (Mk20MacroStepSettings step in model.MacroSteps)
+            {
+                MacroSteps.Add(new MacroStepViewModel(step));
+            }
+
+            crop.Invalidate();
+
+            OnPropertyChanged(nameof(Title));
+            OnPropertyChanged(nameof(HasTitle));
+            OnPropertyChanged(nameof(TitleBrush));
+            OnPropertyChanged(nameof(TitleAlignment));
+            OnPropertyChanged(nameof(TitleFontSize));
+            OnPropertyChanged(nameof(TitleColor));
+            OnPropertyChanged(nameof(TitlePosition));
+            OnPropertyChanged(nameof(Keystroke));
+            OnPropertyChanged(nameof(TargetPageId));
+            OnPropertyChanged(nameof(ActionTarget));
+
+            RaiseIconChanged();
+
+            // Last, so the layout sees a fully rebuilt key when it reacts to the
+            // action changing by creating a folder for it.
+            OnPropertyChanged(nameof(ActionType));
+            RaiseActionChanged();
+        }
     }
 }

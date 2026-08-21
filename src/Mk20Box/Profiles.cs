@@ -21,6 +21,7 @@ namespace Mk20Box
             }
 
             NormalizeProfiles();
+            EnsureUniqueCommandIds();
             SortProfiles();
             MigrateGameBindings();
             SortGameProfiles();
@@ -196,8 +197,52 @@ namespace Mk20Box
             }
         }
 
-        private bool HasDuplicateProfileId(Mk20ProfileSettings candidate)
+        /// <summary>
+        /// Guarantees no two keys in a profile share a command id. The router indexes
+        /// keys by that id, so a duplicate would silently steal the other key's
+        /// presses. Paste already mints a fresh id; this catches anything older or
+        /// hand-edited that slipped through.
+        /// </summary>
+        private void EnsureUniqueCommandIds()
         {
+            foreach (Mk20ProfileSettings profile in Profiles)
+            {
+                if (profile?.Layout?.Pages == null)
+                {
+                    continue;
+                }
+
+                var seen = new System.Collections.Generic.HashSet<string>(
+                    StringComparer.OrdinalIgnoreCase);
+
+                foreach (Mk20Box.Layout.Mk20PageSettings page in profile.Layout.Pages)
+                {
+                    if (page?.Keys == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (Mk20Box.Layout.Mk20KeySettings key in page.Keys)
+                    {
+                        if (key == null || string.IsNullOrEmpty(key.CommandId))
+                        {
+                            continue;
+                        }
+
+                        // The first key to claim an id keeps it; a later twin is
+                        // reissued one, exactly as a pasted key would be.
+                        if (!seen.Add(key.CommandId))
+                        {
+                            key.CommandId = null;
+                            Mk20Box.Layout.ThemeComposer.CommandIdFor(key);
+                            seen.Add(key.CommandId);
+                        }
+                    }
+                }
+            }
+        }
+
+        private bool HasDuplicateProfileId(Mk20ProfileSettings candidate)        {
             int matches = 0;
             foreach (Mk20ProfileSettings profile in Profiles)
             {

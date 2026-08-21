@@ -163,6 +163,93 @@ namespace Mk20Box.Layout
 
         /// <summary>Steps the plugin replays for <see cref="KeyActionKinds.Macro"/>.</summary>
         public List<Mk20MacroStepSettings> MacroSteps { get; set; } = new List<Mk20MacroStepSettings>();
+
+        /// <summary>
+        /// Takes on another key's appearance and action.
+        ///
+        /// Row and column are left alone because they say where this key is rather
+        /// than what it does. The command id is minted afresh: the router keys every
+        /// host-routed press by it, so two keys sharing one would make the copy
+        /// answer for the original. A folder likewise belongs to the single key that
+        /// opens it, so the copy starts without one and the editor gives it its own.
+        /// </summary>
+        public void ApplyFrom(Mk20KeySettings source)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            Title = source.Title;
+            TitleFontSize = source.TitleFontSize;
+            TitleColor = source.TitleColor;
+            TitlePosition = source.TitlePosition;
+
+            MediaPath = source.MediaPath;
+            PreserveAlpha = source.PreserveAlpha;
+            IconFit = source.IconFit;
+            IconOffsetX = source.IconOffsetX;
+            IconOffsetY = source.IconOffsetY;
+
+            ActionType = source.ActionType;
+            ActionTarget = source.ActionTarget;
+            TargetPageId = null;
+
+            Keystroke = source.Keystroke == null
+                ? new Mk20KeystrokeSettings()
+                : source.Keystroke.Clone();
+
+            MacroSteps = CloneSteps(source.MacroSteps);
+
+            CommandId = null;
+            ThemeComposer.CommandIdFor(this);
+        }
+
+        /// <summary>Returns the key to how it starts life: blank, bare and unassigned.</summary>
+        public void Reset()
+        {
+            Title = null;
+            TitleFontSize = KeyTitleDefaults.FontSize;
+            TitleColor = KeyTitleDefaults.Color;
+            TitlePosition = KeyTitleDefaults.Position;
+
+            MediaPath = null;
+            PreserveAlpha = true;
+            IconFit = true;
+            IconOffsetX = 0;
+            IconOffsetY = 0;
+
+            ActionType = KeyActionKinds.Unassigned;
+            ActionTarget = null;
+            TargetPageId = null;
+            CommandId = null;
+
+            Keystroke = new Mk20KeystrokeSettings();
+            MacroSteps = new List<Mk20MacroStepSettings>();
+        }
+
+        /// <summary>A detached copy, so the clipboard cannot be edited from the grid.</summary>
+        public Mk20KeySettings Snapshot()
+        {
+            var copy = new Mk20KeySettings { Row = Row, Column = Column };
+            copy.ApplyFrom(this);
+            return copy;
+        }
+
+        /// <summary>
+        /// Steps are copied through JSON so a step's own fields, whatever they grow
+        /// to be, all travel with it.
+        /// </summary>
+        private static List<Mk20MacroStepSettings> CloneSteps(List<Mk20MacroStepSettings> steps)
+        {
+            if (steps == null || steps.Count == 0)
+            {
+                return new List<Mk20MacroStepSettings>();
+            }
+
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<List<Mk20MacroStepSettings>>(
+                Newtonsoft.Json.JsonConvert.SerializeObject(steps));
+        }
     }
 
     /// <summary>

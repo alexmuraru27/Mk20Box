@@ -354,6 +354,7 @@
                                                  ItemTemplate="{StaticResource Mk20KeyTemplate}"
                                                  ItemsSource="{Binding SelectedPage.Keys}"
                                                  MouseDoubleClick="KeyGrid_MouseDoubleClick"
+                                                 PreviewKeyDown="KeyGrid_PreviewKeyDown"
                                                  PreviewMouseLeftButtonDown="KeyGrid_PreviewMouseDown"
                                                  PreviewMouseRightButtonDown="KeyGrid_RightButtonDown"
                                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -367,6 +368,20 @@
                                                     <MenuItem Click="ClearKeyMedia_Click"
                                                               Header="Remove picture"
                                                               IsEnabled="{Binding SelectedKey.HasMedia, FallbackValue=False}" />
+                                                    <Separator />
+                                                    <MenuItem Click="CopyKey_Click"
+                                                              Header="Copy key"
+                                                              InputGestureText="Ctrl+C"
+                                                              ToolTip="Remember this key's picture, text and action" />
+                                                    <MenuItem x:Name="PasteKeyMenuItem"
+                                                              Click="PasteKey_Click"
+                                                              Header="Paste key"
+                                                              InputGestureText="Ctrl+V"
+                                                              ToolTip="Give this key the copied picture, text and action" />
+                                                    <MenuItem Click="ResetKey_Click"
+                                                              Header="Reset key"
+                                                              InputGestureText="Del"
+                                                              ToolTip="Clear this key back to blank and unassigned" />
                                                     <Separator />
                                                     <MenuItem Click="KeyIconFitMode_Click"
                                                               Header="Show whole picture"

@@ -285,6 +285,120 @@ namespace Mk20Box
             }
         }
 
+        private void CopyKey_Click(object sender, RoutedEventArgs e)
+        {
+            CopySelectedKey();
+        }
+
+        private void PasteKey_Click(object sender, RoutedEventArgs e)
+        {
+            PasteSelectedKey();
+        }
+
+        private void ResetKey_Click(object sender, RoutedEventArgs e)
+        {
+            ResetSelectedKey();
+        }
+
+        /// <summary>Ctrl+C, Ctrl+V and Delete on the key grid, as the menu advertises.</summary>
+        private void KeyGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            bool control = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+
+            if (control && e.Key == Key.C)
+            {
+                e.Handled = CopySelectedKey();
+            }
+            else if (control && e.Key == Key.V)
+            {
+                e.Handled = PasteSelectedKey();
+            }
+            else if (e.Key == Key.Delete && !control)
+            {
+                e.Handled = ResetSelectedKey();
+            }
+        }
+
+        private bool CopySelectedKey()
+        {
+            Mk20Box.Ui.DeviceKeyViewModel key = Layout == null ? null : Layout.SelectedKey;
+            if (key == null)
+            {
+                return false;
+            }
+
+            Layout.CopyKey(key);
+            return true;
+        }
+
+        private bool PasteSelectedKey()
+        {
+            Mk20Box.Ui.DeviceKeyViewModel key = Layout == null ? null : Layout.SelectedKey;
+            if (key == null || !Mk20Box.Ui.DeviceLayoutViewModel.HasCopiedKey)
+            {
+                return false;
+            }
+
+            if (!ConfirmFolderKeyIsReplaced(key, "Paste over"))
+            {
+                // Cancelling still counts as handled, or the key press falls through
+                // to the grid and moves the selection.
+                return true;
+            }
+
+            if (Layout.PasteKey(key))
+            {
+                Plugin.SaveSettings();
+            }
+
+            return true;
+        }
+
+        private bool ResetSelectedKey()
+        {
+            Mk20Box.Ui.DeviceKeyViewModel key = Layout == null ? null : Layout.SelectedKey;
+            if (key == null)
+            {
+                return false;
+            }
+
+            if (!ConfirmFolderKeyIsReplaced(key, "Reset"))
+            {
+                return true;
+            }
+
+            if (Layout.ResetKey(key))
+            {
+                Plugin.SaveSettings();
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Warns before a key stops opening a folder that has something in it. The
+        /// folder itself is kept, as it is when the action is changed by hand, but it
+        /// can no longer be reached from here.
+        /// </summary>
+        private bool ConfirmFolderKeyIsReplaced(Mk20Box.Ui.DeviceKeyViewModel key, string verb)
+        {
+            if (!key.OpensFolder || !Layout.FolderHasContent(key))
+            {
+                return true;
+            }
+
+            MessageBoxResult confirm = MessageBox.Show(
+                verb + " \"" + key.Label + "\"?\n\n"
+                    + "It opens a folder that has keys set up in it. The folder is kept, "
+                    + "but nothing will open it any more.",
+                "MK20Box",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            return confirm == MessageBoxResult.Yes;
+        }
+
         /// <summary>Builds the selected profile's theme and uploads it.</summary>
         private async void SendToDevice_Click(object sender, RoutedEventArgs e)
         {
@@ -1034,6 +1148,12 @@ namespace Mk20Box
             if (item != null)
             {
                 item.IsSelected = true;
+            }
+
+            // Nothing to paste until something has been copied.
+            if (PasteKeyMenuItem != null)
+            {
+                PasteKeyMenuItem.IsEnabled = Mk20Box.Ui.DeviceLayoutViewModel.HasCopiedKey;
             }
         }
 
