@@ -125,6 +125,13 @@ the same layout can be reused wherever it suits.
 MK20Box follows the game selected in SimHub and, with **Upload profile
 automatically** on, sends the matching profile to the device.
 
+**Rename** changes a profile's name only. It keeps its id, so the global
+selection and any per-game bindings follow it.
+
+**Duplicate** copies the selected profile, layout and all, under a new name and
+switches to the copy — the quickest way to build a variant of a layout that
+already works. The copy is independent: editing it cannot disturb the original.
+
 **Reset all settings** clears everything and asks twice.
 
 ### Sharing profiles

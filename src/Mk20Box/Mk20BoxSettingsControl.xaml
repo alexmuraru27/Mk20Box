@@ -918,6 +918,12 @@
                               SelectionChanged="ActiveProfileChanged" />
                     <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,8" Orientation="Horizontal">
                         <Button Margin="0,0,6,0" Padding="10,4"
+                                Click="RenameProfile_Click" Content="Rename"
+                                ToolTip="Give this profile a different name, keeping its layout and game bindings" />
+                        <Button Margin="0,0,6,0" Padding="10,4"
+                                Click="DuplicateProfile_Click" Content="Duplicate"
+                                ToolTip="Create a new profile that starts as a copy of this one" />
+                        <Button Margin="0,0,6,0" Padding="10,4"
                                 Click="ExportProfile_Click" Content="Export"
                                 ToolTip="Save this profile to a file, with its pictures, so it can be shared" />
                         <Button Margin="0,0,6,0" Padding="10,4"

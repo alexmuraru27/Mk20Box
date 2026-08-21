@@ -458,11 +458,137 @@ namespace Mk20Box
             UpdateStatus();
         }
 
+        /// <summary>Renames the selected profile, keeping its layout and bindings.</summary>
+        private void RenameProfile_Click(object sender, RoutedEventArgs e)
+        {
+            var profile = ActiveProfileCombo.SelectedItem as Mk20ProfileSettings;
+            if (profile == null)
+            {
+                MessageBox.Show(
+                    "Select a profile to rename.",
+                    "MK20Box",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            string name = AskForProfileName(
+                "Rename profile",
+                "New name for \"" + profile.Name + "\".",
+                profile.Name);
+
+            if (name == null || string.Equals(name, profile.Name, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (!Plugin.RenameProfile(profile, name))
+            {
+                MessageBox.Show(
+                    "Another profile is already called \"" + name + "\".",
+                    "MK20Box",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            // Sorting may have moved it, so the selection is resolved afresh.
+            profileSelectionKey = null;
+            RefreshProfileChoices();
+            UpdateStatus();
+        }
+
+        /// <summary>
+        /// Copies the selected profile and switches to the copy, so a new layout can
+        /// start from a working one instead of an empty page.
+        /// </summary>
+        private void DuplicateProfile_Click(object sender, RoutedEventArgs e)
+        {
+            var profile = ActiveProfileCombo.SelectedItem as Mk20ProfileSettings;
+            if (profile == null)
+            {
+                MessageBox.Show(
+                    "Select a profile to duplicate.",
+                    "MK20Box",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            string name = AskForProfileName(
+                "Duplicate profile",
+                "Name for the copy of \"" + profile.Name + "\".",
+                SuggestCopyName(profile.Name));
+
+            if (name == null)
+            {
+                return;
+            }
+
+            Mk20ProfileSettings copy = Plugin.DuplicateProfile(profile, name);
+            if (copy == null)
+            {
+                MessageBox.Show(
+                    "Another profile is already called \"" + name + "\".",
+                    "MK20Box",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            // The copy exists to be edited, so it becomes the profile in use, exactly
+            // as a freshly created one does.
+            if (!Plugin.Settings.UseGlobalProfile
+                && !string.IsNullOrWhiteSpace(Plugin.ActiveGameName))
+            {
+                Plugin.SetProfileForGame(Plugin.ActiveGameName, copy.Id);
+            }
+            else
+            {
+                Plugin.Settings.GlobalProfileId = copy.Id;
+                Plugin.SaveSettings();
+            }
+
+            profileSelectionKey = null;
+            RefreshProfileChoices();
+            LoadLayoutForActiveProfile();
+            UpdateStatus();
+        }
+
+        /// <summary>Prompts for a profile name, or null when the user cancels.</summary>
+        private string AskForProfileName(string title, string prompt, string initialValue)
+        {
+            var dialog = new Mk20Box.Ui.NamePromptWindow(title, prompt, initialValue)
+            {
+                Owner = Window.GetWindow(this),
+            };
+
+            return dialog.ShowDialog() == true ? dialog.EnteredName : null;
+        }
+
+        /// <summary>First free "name (2)", "name (3)"... so the prompt opens on a usable name.</summary>
+        private string SuggestCopyName(string name)
+        {
+            string baseName = (name ?? string.Empty).Trim();
+            if (baseName.Length == 0)
+            {
+                baseName = "Profile";
+            }
+
+            for (int suffix = 2; ; suffix++)
+            {
+                string attempt = baseName + " (" + suffix + ")";
+                if (Plugin.Settings.FindProfileByName(attempt) == null)
+                {
+                    return attempt;
+                }
+            }
+        }
+
         /// <summary>
         /// Writes the selected profile, with its pictures, to a file others can import.
         /// </summary>
-        private void ExportProfile_Click(object sender, RoutedEventArgs e)
-        {
+        private void ExportProfile_Click(object sender, RoutedEventArgs e)        {
             var profile = ActiveProfileCombo.SelectedItem as Mk20ProfileSettings;
             if (profile == null)
             {

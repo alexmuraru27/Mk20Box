@@ -378,6 +378,79 @@ namespace Mk20Box
         }
 
         /// <summary>
+        /// Renames a profile in place. The profile keeps its id, so every game
+        /// binding and the global selection follow it automatically.
+        /// </summary>
+        /// <returns>False when another profile already holds that name.</returns>
+        public bool RenameProfile(Mk20ProfileSettings profile, string newName)
+        {
+            string normalizedProfileName = (newName ?? string.Empty).Trim();
+            if (profile == null || normalizedProfileName.Length == 0)
+            {
+                return false;
+            }
+
+            lock (settingsSync)
+            {
+                if (!Settings.Profiles.Contains(profile))
+                {
+                    return false;
+                }
+
+                // Renaming to the same name, or only changing its capitalisation, is
+                // the user tidying up rather than a clash with another profile.
+                Mk20ProfileSettings existing = Settings.FindProfileByName(normalizedProfileName);
+                if (existing != null && !ReferenceEquals(existing, profile))
+                {
+                    return false;
+                }
+
+                profile.Name = normalizedProfileName;
+                Settings.SortProfiles();
+                SaveSettingsCore();
+                RefreshActiveProfileCore();
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Copies a profile, layout and all, under a new name and id. The copy is
+        /// independent: editing it cannot disturb the profile it came from.
+        /// </summary>
+        /// <returns>The new profile, or null when the name is already taken.</returns>
+        public Mk20ProfileSettings DuplicateProfile(Mk20ProfileSettings profile, string newName)
+        {
+            string normalizedProfileName = (newName ?? string.Empty).Trim();
+            if (profile == null || normalizedProfileName.Length == 0)
+            {
+                return null;
+            }
+
+            lock (settingsSync)
+            {
+                if (!Settings.Profiles.Contains(profile)
+                    || Settings.FindProfileByName(normalizedProfileName) != null)
+                {
+                    return null;
+                }
+
+                // A round trip through JSON, so pages, keys, macros and widgets are
+                // all copied rather than shared with the original.
+                Mk20ProfileSettings copy =
+                    Newtonsoft.Json.JsonConvert.DeserializeObject<Mk20ProfileSettings>(
+                        Newtonsoft.Json.JsonConvert.SerializeObject(profile));
+
+                copy.Id = Mk20BoxPluginSettings.CreateProfileId();
+                copy.Name = normalizedProfileName;
+
+                Settings.Profiles.Add(copy);
+                Settings.SortProfiles();
+                SaveSettingsCore();
+                return copy;
+            }
+        }
+
+        /// <summary>
         /// Restores a fresh install: every profile, layout, game binding and
         /// preference is discarded. The device connection is left alone so the user
         /// does not have to reconnect.
