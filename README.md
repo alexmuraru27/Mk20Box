@@ -36,9 +36,12 @@ MK20Box makes all of it useful while you drive.
 
 ## Install
 
+Requires **SimHub 9.12.1 or later**.
+
 1. Download the latest release and unzip it.
-2. Copy the contents into your SimHub folder, usually
-   `C:\Program Files (x86)\SimHub`, keeping the layout intact:
+2. **Close SimHub** — it holds the plugin open while running.
+3. Copy everything inside the `SimHub\` folder into your SimHub folder,
+   usually `C:\Program Files (x86)\SimHub`, keeping the layout intact:
 
    ```
    Mk20Box.dll             <- plugin
@@ -46,10 +49,13 @@ MK20Box makes all of it useful while you drive.
    Languages\Mk20Box.resx  <- translations
    ```
 
-3. Restart SimHub, open **Settings -> Plugins**, and enable **MK20Box**.
-4. Plug in the MK20. It is picked up automatically.
+4. Start SimHub. It offers to enable newly found plugins — enable **MK20Box**.
+   You can also enable it later under **Settings -> Plugins**.
+5. Plug in the MK20. It is picked up automatically.
 
-Nothing SimHub ships is replaced, so removing those three items uninstalls it cleanly.
+Nothing SimHub ships is replaced. To uninstall, delete those three items plus
+`PluginsData\Common\Mk20BoxPlugin.GeneralSettings.json`, which holds your
+profiles.
 
 ## Getting started
 

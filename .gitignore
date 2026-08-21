@@ -62,3 +62,6 @@ nunit-*.xml
 
 # Staged plugin output from build.ps1
 dist/
+
+# Packed output from release.ps1 (also matched by [Rr]elease/ above)
+release/

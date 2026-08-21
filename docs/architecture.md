@@ -111,12 +111,34 @@ git submodule update --init --recursive
 .\build.ps1        # Release, staged in dist\Mk20Box
 .\build.ps1 -Zip   # also packs a release archive
 .\deploy.ps1       # build and install into SimHub (development)
+.\release.ps1      # clean build, checks, and a packed release in release\
+.\release.ps1 -Version 1.1.0 -Strict   # for a release you will publish
 ```
 
 SimHub's assemblies are referenced, never copied or modified. Building never
 writes to the installation — deployment is opt-in via the `DeployToSimHub`
 MSBuild property, which `deploy.ps1` sets. `deploy.ps1` refuses to run while
 SimHub holds the DLL open, and verifies the deployed file matches the build.
+
+`release.ps1` rebuilds from clean and refuses to pack if the payload contains
+one of SimHub's own assemblies, contains an unexpected file, contains debug
+symbols, or is missing the icon library. Neither check hardcodes a list: the
+SimHub assemblies are read from the project file's `SIMHUB_INSTALL_PATH`
+references, and the payload is matched against the shapes MK20Box ships, so a
+new reference or dependency needs no edit to the script.
+
+Provenance problems — a dirty working tree, a modified submodule, a git tag that
+disagrees with the version — are warnings rather than errors, so a local test
+build is never blocked; the recorded commit gains a `+local` suffix instead.
+Pass `-Strict` to turn them into errors for a release you intend to publish.
+
+The output nests the copy-target under `SimHub\` so the licence and docs cannot
+be dragged into the installation by mistake, and a previous release is replaced
+only once a new one has been built and checked.
+
+Dependencies live in a private `Mk20Box\` subfolder resolved by an
+`AssemblyResolve` hook, rather than beside SimHub's own DLLs, so a version of
+ImageSharp or System.Text.Json cannot clash with SimHub's.
 
 The MK20Control
 [API guide](../external/MK20Control/Mk20Control.Protocol.API.md) and
