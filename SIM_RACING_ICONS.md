@@ -8,20 +8,19 @@ function-specific pictograms, category-color LED accents, hardware details,
 and compact labels. Transparent backgrounds allow each button's configured
 background color to remain visible.
 
-**Total: 237 icons across 12 categories.**
+**Total: 292 labeled icons across 12 categories.**
 
-Location: `src/Mk20Box/assets/SimRacingIcons/<Category>/<key>.png`
+Location: `src/Mk20Box/Mk20Assets/SimRacingIcons/<Category>/<key>.png`
 
 ## No-Text Variants
 
-The no-text collection contains **187 unique artwork variants** so users can
-add their own labels. The pictogram, category frame, separator, accent colors,
-and transparency are unchanged. When multiple labeled icons became visually
-identical after removing their text, only the alphabetically first filename
-was retained (for example, `brake-bias-forward.png` is retained instead of
-also storing `brake-bias-rearward.png`).
+The no-text collection contains **242 artwork variants** so users can add
+their own labels. The pictogram, category frame, separator, accent colors, and
+transparency are unchanged. The original collection deduplicates identical
+artwork; the bindable-control expansion keeps one filename per action so each
+labeled icon always has a directly discoverable no-text counterpart.
 
-Location: `src/Mk20Box/assets/SimRacingIconsNoText/<key>.png`
+Location: `src/Mk20Box/Mk20Assets/SimRacingIconsNoText/<key>.png`
 
 ## Blank Templates
 
@@ -30,7 +29,7 @@ color. Their transparent center and label areas are ready for custom
 pictograms and text while retaining the original separator and hardware-style
 frame.
 
-Location: `src/Mk20Box/assets/SimRacingIconTemplates/template-<color>.png`
+Location: `src/Mk20Box/Mk20Assets/SimRacingIconTemplates/template-<color>.png`
 
 | Color | Template |
 |---|---|
@@ -46,6 +45,27 @@ Location: `src/Mk20Box/assets/SimRacingIconTemplates/template-<color>.png`
 | Coral | `template-coral.png` |
 | Green | `template-green.png` |
 | Lime | `template-lime.png` |
+
+## Bindable-Control Coverage Expansion
+
+The original catalogue already included the requested ETS2/ATS essentials:
+trailer brake, trailer attach/detach, horn, air horn, cruise set/off/resume and
+speed adjustment, truck/trailer axle lift, suspension, differential lock,
+engine brake, retarder, windows, lights, wipers, mirrors, and Route Advisor.
+
+An audit against current truck-simulator control identifiers and the commonly
+bound in-car controls for iRacing, ACC, Assetto Corsa EVO, and Le Mans Ultimate
+identified 55 useful button-box gaps. This expansion covers direct controls
+and discrete settings; steering, pedal, clutch, camera-look, and other analog
+axes are intentionally excluded.
+
+| Category | Added keys |
+|---|---|
+| Driver Aids | `stability-control-decrease`, `stability-control-increase`, `stability-control-toggle`, `tc-power-cut-decrease`, `tc-power-cut-increase`, `tc-slip-angle-decrease`, `tc-slip-angle-increase`, `force-feedback-decrease`, `force-feedback-increase`, `steering-ratio-decrease`, `steering-ratio-increase` |
+| MFD HUD | `mfd-left`, `mfd-right`, `black-box-next`, `black-box-prev`, `black-box-control-next`, `black-box-control-prev`, `black-box-toggle`, `dash-brightness-decrease`, `dash-brightness-increase`, `delta-bar-toggle` |
+| Recovery Session | `active-reset-save`, `active-reset-run`, `active-reset-clear` |
+| Truck Engine Braking Cruise | `cruise-control-toggle`, `engine-brake-auto`, `retarder-off`, `retarder-level-1`, `retarder-level-2`, `retarder-level-3`, `retarder-level-4`, `retarder-level-5`, `emergency-brake-toggle`, `lane-assist-toggle`, `lane-assist-mode`, `transmission-power-mode` |
+| Truck Chassis Trailer Cab | `truck-front-suspension-raise`, `truck-front-suspension-lower`, `truck-rear-suspension-raise`, `truck-rear-suspension-lower`, `trailer-sliding-axle-forward`, `trailer-sliding-axle-backward`, `trailer-sliding-axle-manual`, `window-left-open`, `window-left-close`, `window-right-open`, `window-right-close`, `dashboard-display-cycle`, `dashboard-map-zoom`, `infotainment-toggle`, `light-off`, `light-parking`, `light-on`, `mirror-reset`, `quick-park` |
 
 ## Power Engine Drivetrain
 
