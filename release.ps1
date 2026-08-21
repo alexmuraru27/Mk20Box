@@ -177,6 +177,39 @@ if (-not (Test-Path (Join-Path $staging 'Mk20Box.dll'))) {
     Fail 'The build produced no plugin assembly.'
 }
 
+# ---- tests ------------------------------------------------------------------
+
+Write-Step 'Running the tests'
+
+# A release is the last place a regression should be discovered, so a failing
+# test stops the pack outright rather than warning. Unlike the provenance
+# checks, this is never downgraded by -Strict being absent.
+$testProject = Join-Path $root 'src\Mk20Box.Tests\Mk20Box.Tests.csproj'
+
+if (-not (Test-Path $testProject)) {
+    Fail "The test project is missing from '$testProject'. Refusing to pack an unverified build."
+}
+
+$testOutput = & dotnet test $testProject --configuration Release --nologo 2>&1
+$testExit = $LASTEXITCODE
+
+# The summary line carries the counts; the rest is build noise nobody needs
+# unless something failed.
+$summary = $testOutput | Select-String -Pattern '^(Passed|Failed)!\s+-\s+Failed:' | Select-Object -Last 1
+
+if ($testExit -ne 0) {
+    $testOutput | Select-String -Pattern 'error|Failed ' | Select-Object -First 20 |
+        ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+    Fail 'The tests failed. Fix them before packing a release.'
+}
+
+if ($summary) {
+    Write-Host "    $($summary.Line.Trim())" -ForegroundColor Gray
+}
+else {
+    Warn 'the test run reported no summary; check that the suite actually ran'
+}
+
 # ---- checks -----------------------------------------------------------------
 
 Write-Step 'Checking the payload'

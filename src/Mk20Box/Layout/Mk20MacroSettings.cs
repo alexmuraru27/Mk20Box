@@ -85,6 +85,22 @@ namespace Mk20Box.Layout
         /// <summary>SimHub action name for <see cref="MacroStepKinds.SimHubAction"/>.</summary>
         public string ActionName { get; set; }
 
+        /// <summary>
+        /// A copy that shares nothing with this step, so an edit to one macro cannot
+        /// reach into another that was copied from it.
+        /// </summary>
+        public Mk20MacroStepSettings Clone()
+        {
+            return new Mk20MacroStepSettings
+            {
+                Kind = Kind,
+                Keystroke = Keystroke == null ? new Mk20KeystrokeSettings() : Keystroke.Clone(),
+                Text = Text,
+                DelayMs = DelayMs,
+                ActionName = ActionName,
+            };
+        }
+
         /// <summary>Short description shown in the step list.</summary>
         public string Describe()
         {

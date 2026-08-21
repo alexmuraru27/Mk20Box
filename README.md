@@ -118,6 +118,19 @@ cd Mk20Box
 The result is staged in `dist\Mk20Box`, ready to copy. While developing,
 `.\deploy.ps1` builds and installs it for you.
 
+### Tests
+
+Unit tests live in `src/Mk20Box.Tests` and cover the parts of the plugin that are
+pure logic: the layout, key and widget models, the editor's copy and paste,
+profile import and export, and the SimHub property lookup. They need neither
+SimHub running nor an MK20 plugged in.
+
+```powershell
+dotnet test src\Mk20Box.Tests\Mk20Box.Tests.csproj
+```
+
+`release.ps1` runs them as well, and refuses to pack a release if any fail.
+
 ## Credits
 
 Built on [MK20Control](external/MK20Control), a reverse-engineered library for

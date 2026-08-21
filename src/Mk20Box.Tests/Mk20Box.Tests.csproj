@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Matches the plugin, so its types can be referenced directly. -->
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+
+    <!--
+      The view models expose WPF types (brushes, alignments, Rect), so testing
+      them needs the same references the plugin has. No window is ever shown.
+    -->
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NUnit" Version="4.3.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+  <!--
+    The plugin references SimHub's assemblies with Private=False, so they are not
+    copied here. Most of what is tested is pure logic that never touches them.
+    Profile import and export are the exception: they are serialization, so they
+    genuinely need JSON.NET, and the test host has no SimHub to borrow it from.
+  -->
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(SIMHUB_INSTALL_PATH)Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mk20Box\Mk20Box.csproj" />
+  </ItemGroup>
+
+</Project>

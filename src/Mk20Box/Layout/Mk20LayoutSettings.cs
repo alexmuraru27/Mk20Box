@@ -237,18 +237,27 @@ namespace Mk20Box.Layout
         }
 
         /// <summary>
-        /// Steps are copied through JSON so a step's own fields, whatever they grow
-        /// to be, all travel with it.
+        /// Steps are cloned one by one rather than serialized, so the settings model
+        /// stays free of any dependency beyond itself.
         /// </summary>
         private static List<Mk20MacroStepSettings> CloneSteps(List<Mk20MacroStepSettings> steps)
         {
-            if (steps == null || steps.Count == 0)
+            var copies = new List<Mk20MacroStepSettings>();
+
+            if (steps == null)
             {
-                return new List<Mk20MacroStepSettings>();
+                return copies;
             }
 
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<List<Mk20MacroStepSettings>>(
-                Newtonsoft.Json.JsonConvert.SerializeObject(steps));
+            foreach (Mk20MacroStepSettings step in steps)
+            {
+                if (step != null)
+                {
+                    copies.Add(step.Clone());
+                }
+            }
+
+            return copies;
         }
     }
 
