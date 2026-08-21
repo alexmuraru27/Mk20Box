@@ -41,7 +41,6 @@ namespace Mk20Box
             AutoConnectCheckBox.IsChecked = Plugin.Settings.AutoConnect;
             AutoUploadCheckBox.IsChecked = Plugin.Settings.AutoUploadProfile;
             InputDelayTextBox.Text = Plugin.Settings.InputDelayMs.ToString();
-            TitleColorCombo.ItemsSource = Mk20Box.Layout.KeyTitleDefaults.Colors;
             TitleSizeCombo.ItemsSource = Mk20Box.Layout.KeyTitleDefaults.FontSizes;
             TitlePositionCombo.ItemsSource = Mk20Box.Layout.KeyTitleDefaults.Positions;
             RefreshProfileChoices();
@@ -665,7 +664,7 @@ namespace Mk20Box
         /// <summary>Picks the artwork that fills the secondary strip.</summary>
         private void ChooseSecondaryBackground_Click(object sender, RoutedEventArgs e)
         {
-            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SecondaryPage;
             if (page == null)
             {
                 return;
@@ -687,7 +686,7 @@ namespace Mk20Box
 
         private void ClearSecondaryBackground_Click(object sender, RoutedEventArgs e)
         {
-            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SecondaryPage;
             if (page == null)
             {
                 return;
@@ -705,7 +704,7 @@ namespace Mk20Box
         /// </summary>
         private void SecondaryBackground_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SecondaryPage;
             if (page == null || !page.HasSecondaryBackground || page.SecondaryBackgroundFit)
             {
                 return;
@@ -733,7 +732,7 @@ namespace Mk20Box
                 return;
             }
 
-            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SecondaryPage;
             if (page == null)
             {
                 return;
@@ -801,15 +800,30 @@ namespace Mk20Box
 
         private void SecondaryFitMode_Click(object sender, RoutedEventArgs e)
         {
-            if (Plugin != null && Layout != null && Layout.SelectedPage != null)
+            if (Plugin != null && Layout != null && Layout.SecondaryPage != null)
             {
                 Plugin.SaveSettings();
             }
         }
 
+        /// <summary>
+        /// Switches the strip between per-page and shared. The editor follows it, so
+        /// what is on screen is what every page will get.
+        /// </summary>
+        private void GlobalSecondaryScreen_Click(object sender, RoutedEventArgs e)
+        {
+            if (Plugin == null || Layout == null)
+            {
+                return;
+            }
+
+            WidgetList.SelectedItem = null;
+            Plugin.SaveSettings();
+        }
+
         private void CentreSecondaryBackground_Click(object sender, RoutedEventArgs e)
         {
-            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SelectedPage;
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SecondaryPage;
             if (page == null || !page.HasSecondaryBackground)
             {
                 return;
@@ -822,6 +836,187 @@ namespace Mk20Box
 
         private bool secondaryDragging;
         private Point secondaryDragOrigin;
+
+        /// <summary>Adds a widget to the page on screen and selects it for editing.</summary>
+        private void AddWidget_Click(object sender, RoutedEventArgs e)
+        {
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SecondaryPage;
+            if (page == null)
+            {
+                return;
+            }
+
+            // Stacked slightly so a second widget does not land on the first.
+            int existing = page.Widgets.Count;
+
+            var widget = new Mk20Box.Layout.Mk20TextWidget
+            {
+                X = 20,
+                Y = 16 + ((existing % 4) * 30),
+                Text = "text",
+            };
+
+            Mk20Box.Ui.WidgetViewModel added = page.AddWidget(widget);
+            WidgetList.SelectedItem = added;
+            WidgetList.ScrollIntoView(added);
+            Plugin.SaveSettings();
+        }
+
+        private void RemoveWidget_Click(object sender, RoutedEventArgs e)
+        {
+            Mk20Box.Ui.ThemePageViewModel page = Layout == null ? null : Layout.SecondaryPage;
+            var widget = WidgetList.SelectedItem as Mk20Box.Ui.WidgetViewModel;
+
+            if (page == null || widget == null)
+            {
+                MessageBox.Show(
+                    "Select a widget from the list first.",
+                    "MK20Box",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            page.RemoveWidget(widget);
+            Plugin.SaveSettings();
+        }
+
+        private void WidgetSelected(object sender, SelectionChangedEventArgs e)
+        {
+            // The type list is filled once the first widget is shown.
+            if (WidgetKindCombo != null && WidgetKindCombo.ItemsSource == null)
+            {
+                WidgetKindCombo.ItemsSource = Mk20Box.Layout.WidgetKinds.All;
+            }
+        }
+
+        private void WidgetColorChanged(object sender, RoutedPropertyChangedEventArgs<System.Windows.Media.Color?> e)
+        {
+            WidgetFieldChanged(sender, e);
+        }
+
+        private void KeyColorChanged(object sender, RoutedPropertyChangedEventArgs<System.Windows.Media.Color?> e)
+        {
+            if (Plugin != null && Layout != null && Layout.SelectedKey != null)
+            {
+                Plugin.SaveSettings();
+            }
+        }
+
+        private void WidgetFieldChanged(object sender, RoutedEventArgs e)
+        {
+            if (Plugin != null && WidgetList != null && WidgetList.SelectedItem != null)
+            {
+                Plugin.SaveSettings();
+            }
+        }
+
+        private void WidgetChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (Plugin != null && WidgetList != null && WidgetList.SelectedItem != null)
+            {
+                Plugin.SaveSettings();
+            }
+        }
+
+        /// <summary>Picks the SimHub value this widget streams.</summary>
+        private void ChooseProperty_Click(object sender, RoutedEventArgs e)
+        {
+            var widget = WidgetList.SelectedItem as Mk20Box.Ui.WidgetViewModel;
+            if (widget == null)
+            {
+                return;
+            }
+
+            var picker = new Mk20Box.Ui.PropertyPickerWindow(Plugin.AvailableProperties())
+            {
+                Owner = Window.GetWindow(this),
+            };
+
+            if (picker.ShowDialog() == true && picker.SelectedProperty != null)
+            {
+                if (picker.SelectedEntry != null)
+                {
+                    // A known value brings its unit, decimals and a sensible range.
+                    widget.Apply(picker.SelectedEntry);
+                }
+                else
+                {
+                    widget.Property = picker.SelectedProperty;
+                }
+
+                Plugin.SaveSettings();
+            }
+        }
+
+        private void ClearProperty_Click(object sender, RoutedEventArgs e)
+        {
+            var widget = WidgetList.SelectedItem as Mk20Box.Ui.WidgetViewModel;
+            if (widget != null)
+            {
+                widget.Property = null;
+                Plugin.SaveSettings();
+            }
+        }
+
+        /// <summary>
+        /// Widgets are dragged straight on the screen preview. The canvas is the real
+        /// 428 x 142, so pointer positions are already in device coordinates.
+        /// </summary>
+        private void Widget_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var element = sender as FrameworkElement;
+            var widget = element == null ? null : element.DataContext as Mk20Box.Ui.WidgetViewModel;
+
+            if (widget == null)
+            {
+                return;
+            }
+
+            WidgetList.SelectedItem = widget;
+
+            draggedWidget = widget;
+            widgetDragOffset = e.GetPosition(element);
+            element.CaptureMouse();
+            element.Cursor = System.Windows.Input.Cursors.SizeAll;
+            e.Handled = true;
+        }
+
+        private void Widget_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (draggedWidget == null)
+            {
+                return;
+            }
+
+            Point position = e.GetPosition(WidgetOverlay);
+            draggedWidget.MoveTo(
+                position.X - widgetDragOffset.X,
+                position.Y - widgetDragOffset.Y);
+        }
+
+        private void Widget_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (draggedWidget == null)
+            {
+                return;
+            }
+
+            var element = sender as FrameworkElement;
+            if (element != null)
+            {
+                element.ReleaseMouseCapture();
+                element.Cursor = null;
+            }
+
+            draggedWidget = null;
+
+            // Saved once at the end rather than on every mouse move.
+            Plugin.SaveSettings();
+        }
+
+        private Mk20Box.Ui.WidgetViewModel draggedWidget;
+        private Point widgetDragOffset;
 
         private void GlobalProfileMode_Click(object sender, RoutedEventArgs e)
         {

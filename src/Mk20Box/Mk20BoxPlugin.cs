@@ -33,6 +33,9 @@ namespace Mk20Box
         /// <summary>Routes device presses to macros and SimHub actions.</summary>
         public Mk20Box.Runtime.CommandRouter Router { get; } = new Mk20Box.Runtime.CommandRouter();
 
+        /// <summary>Streams widget values to the device while a profile is loaded.</summary>
+        public Mk20Box.Runtime.TelemetryPump Telemetry { get; private set; }
+
         /// <summary>Current plugin manager instance (set by SimHub).</summary>
         public PluginManager PluginManager { get; set; }
 
@@ -85,6 +88,8 @@ namespace Mk20Box
                 InputDelayMs = Settings.InputDelayMs,
             };
 
+            Telemetry = new Mk20Box.Runtime.TelemetryPump(Device, ReadGameProperty);
+
             // Registers the profile's SimHub inputs so they can be mapped in
             // Controls & Events even before the device is plugged in.
             Router.SetActiveLayout(ActiveProfileLayout());
@@ -104,6 +109,7 @@ namespace Mk20Box
             {
                 Router.Attach(Device.Client);
                 Router.SetActiveLayout(ActiveProfileLayout());
+                Telemetry.SetActiveLayout(ActiveProfileLayout());
 
                 // A game may already be running, so push the resolved profile now.
                 RefreshActiveProfile();
@@ -113,7 +119,77 @@ namespace Mk20Box
                 // Force a re-upload after reconnecting.
                 uploadedProfileId = null;
                 Router.Detach();
+                Telemetry.Stop();
             }
+        }
+
+        /// <summary>Every property SimHub currently exposes, for the widget picker.</summary>
+        public System.Collections.Generic.List<string> AvailableProperties()
+        {
+            try
+            {
+                return PluginManager == null
+                    ? new System.Collections.Generic.List<string>()
+                    : PluginManager.GetAllPropertiesNames();
+            }
+            catch (Exception ex)
+            {
+                SimHub.Logging.Current.Warn($"[MK20Box] Could not list properties: {ex.Message}");
+                return new System.Collections.Generic.List<string>();
+            }
+        }
+
+        /// <summary>
+        /// Reads a SimHub property for a widget. The picker stores whatever SimHub
+        /// reported, but a hand-typed or older name may be missing its prefix, so a
+        /// few known ones are tried before giving up.
+        /// </summary>
+        private object ReadGameProperty(string name)
+        {
+            if (PluginManager == null || string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            object value = Mk20Box.Runtime.PropertyResolver.Resolve(name, TryReadProperty);
+
+            if (value == null)
+            {
+                WarnOnce(name);
+            }
+
+            return value;
+        }
+
+        private readonly System.Collections.Generic.HashSet<string> warnedProperties =
+            new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        private object TryReadProperty(string name)
+        {
+            try
+            {
+                return PluginManager.GetPropertyValue(name);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>Reported once, so a missing value does not flood the log.</summary>
+        private void WarnOnce(string name)
+        {
+            lock (warnedProperties)
+            {
+                if (!warnedProperties.Add(name))
+                {
+                    return;
+                }
+            }
+
+            SimHub.Logging.Current.Warn(
+                $"[MK20Box] Widget value '{name}' is not available from SimHub - "
+                + "pick it again with the Choose button so the exact name is used.");
         }
 
         /// <summary>Profile that should be on the device right now.</summary>
@@ -265,6 +341,13 @@ namespace Mk20Box
         public void End(PluginManager pluginManager)
         {
             SaveSettings();
+
+            // Stop pushing before the port closes, or the pump writes into a dead port.
+            if (Telemetry != null)
+            {
+                Telemetry.Dispose();
+            }
+
             Router.Dispose();
             Device.DisconnectAsync().GetAwaiter().GetResult();
         }
@@ -417,6 +500,7 @@ namespace Mk20Box
 
             // Composition assigns any missing command ids, so reindex before uploading.
             Router.SetActiveLayout(layout);
+            Telemetry.SetActiveLayout(layout);
 
             bool uploaded = await Device.UploadThemeAsync(ThemeNameFor(profile), theme).ConfigureAwait(false);
 

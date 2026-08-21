@@ -156,7 +156,9 @@
                         <!-- Device schematic + inspector -->
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
+                                <!-- Pinned to the schematic's width: an Auto column would be
+                                     resized by the widget editor below, moving the device -->
+                                <ColumnDefinition Width="560" />
                                 <ColumnDefinition Width="16" />
                                 <ColumnDefinition Width="360" />
                             </Grid.ColumnDefinitions>
@@ -166,6 +168,7 @@
                             </Grid.RowDefinitions>
 
                             <Border Width="560" Height="540"
+                                    HorizontalAlignment="Left"
                                     Background="{StaticResource Mk20ShellBrush}"
                                     BorderBrush="{StaticResource Mk20ShellBorderBrush}"
                                     BorderThickness="2"
@@ -213,24 +216,24 @@
                                                                   Header="Choose picture..." />
                                                         <MenuItem Click="ClearSecondaryBackground_Click"
                                                                   Header="Remove picture"
-                                                                  IsEnabled="{Binding SelectedPage.HasSecondaryBackground, FallbackValue=False}" />
+                                                                  IsEnabled="{Binding SecondaryPage.HasSecondaryBackground, FallbackValue=False}" />
                                                         <Separator />
                                                         <MenuItem Click="SecondaryFitMode_Click"
                                                                   Header="Show whole picture"
                                                                   IsCheckable="True"
-                                                                  IsChecked="{Binding SelectedPage.SecondaryBackgroundFit, Mode=TwoWay}"
-                                                                  IsEnabled="{Binding SelectedPage.HasSecondaryBackground, FallbackValue=False}"
+                                                                  IsChecked="{Binding SecondaryPage.SecondaryBackgroundFit, Mode=TwoWay}"
+                                                                  IsEnabled="{Binding SecondaryPage.HasSecondaryBackground, FallbackValue=False}"
                                                                   ToolTip="Keep the original proportions. Untick to fill the screen and crop." />
                                                     </ContextMenu>
                                                 </Grid.ContextMenu>
 
                                                 <!-- Exactly the crop the composer will send, animated for GIFs. -->
-                                                <ui:AnimatedImage SourcePath="{Binding SelectedPage.SecondaryBackgroundPath}"
-                                                                  Viewbox="{Binding SelectedPage.SecondaryBackgroundViewbox}"
-                                                                  Stretch="{Binding SelectedPage.SecondaryStretch}" />
+                                                <ui:AnimatedImage SourcePath="{Binding SecondaryPage.SecondaryBackgroundPath}"
+                                                                  Viewbox="{Binding SecondaryPage.SecondaryBackgroundViewbox}"
+                                                                  Stretch="{Binding SecondaryPage.SecondaryStretch}" />
 
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                            Visibility="{Binding SelectedPage.HasSecondaryBackground, Converter={StaticResource InverseBooleanToVisibility}, FallbackValue=Visible}">
+                                                            Visibility="{Binding SecondaryPage.HasSecondaryBackground, Converter={StaticResource InverseBooleanToVisibility}, FallbackValue=Visible}">
                                                     <TextBlock HorizontalAlignment="Center"
                                                                FontSize="11" FontWeight="SemiBold"
                                                                Foreground="{StaticResource Mk20AccentBrush}"
@@ -245,7 +248,81 @@
                                                            HorizontalAlignment="Center" VerticalAlignment="Bottom"
                                                            FontSize="9"
                                                            Foreground="#B0FFFFFF"
-                                                           Text="{Binding SelectedPage.SecondaryPanHint}" />
+                                                           Text="{Binding SecondaryPage.SecondaryPanHint}" />
+
+                                                <!-- Widgets, drawn where they will appear and draggable.
+                                                     The canvas is the real 428x142 so positions map 1:1. -->
+                                                <Viewbox Stretch="Fill">
+                                                    <ItemsControl x:Name="WidgetOverlay"
+                                                                  Width="428" Height="142"
+                                                                  ItemsSource="{Binding SecondaryPage.Widgets}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <Canvas />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>                                                        <ItemsControl.ItemContainerStyle>
+                                                            <Style TargetType="ContentPresenter">
+                                                                <Setter Property="Canvas.Left" Value="{Binding X}" />
+                                                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                                                            </Style>
+                                                        </ItemsControl.ItemContainerStyle>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid Width="{Binding DisplayWidth}"
+                                                                      Height="{Binding DisplayHeight}"
+                                                                      Background="#01FFFFFF"
+                                                                      MouseLeftButtonDown="Widget_MouseDown"
+                                                                      MouseMove="Widget_MouseMove"
+                                                                      MouseLeftButtonUp="Widget_MouseUp"
+                                                                      ToolTip="{Binding Description}">
+                                                                    <!-- A bar is a filled box; text draws itself -->
+                                                                    <Border Background="#5A000000"
+                                                                            BorderBrush="{Binding Brush}" BorderThickness="1"
+                                                                            CornerRadius="3"
+                                                                            Visibility="{Binding IsBar, Converter={StaticResource BooleanToVisibility}}">
+                                                                        <Rectangle Margin="2"
+                                                                                   HorizontalAlignment="Left"
+                                                                                   Width="{Binding PreviewFillWidth}"
+                                                                                   Fill="{Binding Brush}"
+                                                                                   RadiusX="2" RadiusY="2" />
+                                                                    </Border>
+
+                                                                    <!-- A clock is one box per field, digits centred,
+                                                                         with no separator - exactly as the device draws it -->
+                                                                    <ItemsControl ItemsSource="{Binding ClockDigits}"
+                                                                                  Margin="{Binding DigitGroupMargin}"
+                                                                                  Visibility="{Binding IsClock, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                                        <ItemsControl.ItemsPanel>
+                                                                            <ItemsPanelTemplate>
+                                                                                <StackPanel Orientation="Horizontal" />
+                                                                            </ItemsPanelTemplate>
+                                                                        </ItemsControl.ItemsPanel>
+                                                                        <ItemsControl.ItemTemplate>
+                                                                            <DataTemplate>
+                                                                                <Grid Width="{Binding DataContext.DigitWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                                      Height="{Binding DataContext.DigitHeight, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                                      Margin="{Binding DataContext.DigitMargin, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                                                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                               FontFamily="Microsoft YaHei"
+                                                                                               FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                                               Foreground="{Binding DataContext.Brush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                                               Text="{Binding}" />
+                                                                                </Grid>
+                                                                            </DataTemplate>
+                                                                        </ItemsControl.ItemTemplate>
+                                                                    </ItemsControl>
+
+                                                                    <TextBlock VerticalAlignment="Center"
+                                                                               FontFamily="Microsoft YaHei"
+                                                                               FontSize="{Binding FontSize}"
+                                                                               Foreground="{Binding Brush}"
+                                                                               Text="{Binding Preview}"
+                                                                               Visibility="{Binding IsPlainText, Converter={StaticResource BooleanToVisibility}, FallbackValue=Visible}" />
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </Viewbox>
                                             </Grid>
                                         </Border>
 
@@ -303,7 +380,270 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Inspector: keys and encoders share this column -->
+                            <!-- Widgets shown on the secondary screen -->
+                            <Border Grid.Row="1" Margin="0,12,0,0" Padding="10"
+                                    Background="#141B22" BorderBrush="#2A3742" BorderThickness="1">
+                                <StackPanel DataContext="{Binding SecondaryPage}">
+                                    <Border Margin="0,0,0,8" Padding="8,5"
+                                            Background="#182430" CornerRadius="3">
+                                        <TextBlock FontWeight="SemiBold"
+                                                   Foreground="{StaticResource Mk20AccentBrush}"
+                                                   Text="SECONDARY SCREEN WIDGETS" />
+                                    </Border>
+
+                                    <CheckBox Margin="0,0,0,6"
+                                              Click="GlobalSecondaryScreen_Click"
+                                              Content="Use one secondary screen for every page and folder"
+                                              DataContext="{Binding DataContext, ElementName=LayoutMenuPanel}"
+                                              IsChecked="{Binding GlobalSecondaryScreen, Mode=TwoWay}"
+                                              ToolTip="The picture and widgets from page 1 are copied onto every page when the layout is built." />
+
+                                    <TextBlock Margin="0,0,0,8" Opacity="0.7" TextWrapping="Wrap"
+                                               Text="Show live SimHub values on the small screen: speed, fuel, TC, ABS and anything else the game reports." />
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="210" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel>
+                                            <ListBox x:Name="WidgetList"
+                                                     Height="150"
+                                                     DisplayMemberPath="Description"
+                                                     ItemsSource="{Binding Widgets}"
+                                                     SelectionChanged="WidgetSelected" />
+                                            <WrapPanel Margin="0,6,0,0">
+                                                <Button Width="60" Height="26" Margin="0,0,4,0"
+                                                        Click="AddWidget_Click" Content="Add" />
+                                                <Button Width="70" Height="26"
+                                                        Click="RemoveWidget_Click" Content="Remove" />
+                                            </WrapPanel>
+                                        </StackPanel>
+
+                                        <Grid Grid.Column="2" DataContext="{Binding SelectedItem, ElementName=WidgetList}">
+                                            <TextBlock Opacity="0.6"
+                                                       Text="Add a widget, or select one to edit it."
+                                                       Visibility="{Binding Converter={StaticResource NullToVisibility}}" />
+
+                                            <StackPanel Visibility="{Binding Converter={StaticResource NotNullToVisibility}}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="6" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Type" />
+                                                    <ComboBox x:Name="WidgetKindCombo"
+                                                              Grid.Row="1" Height="26"
+                                                              SelectedItem="{Binding Kind, Mode=TwoWay}"
+                                                              SelectionChanged="WidgetChanged" />
+
+                                                    <StackPanel Grid.Column="2" Grid.RowSpan="2"
+                                                                Visibility="{Binding IsClock, Converter={StaticResource InverseBooleanToVisibility}, FallbackValue=Visible}">
+                                                        <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Label" />
+                                                        <TextBox Height="26"
+                                                                 Text="{Binding Label, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <!-- A clock is fed by hour/minute/second, never by a property -->
+                                                <StackPanel Visibility="{Binding IsClock, Converter={StaticResource InverseBooleanToVisibility}, FallbackValue=Visible}">
+                                                    <TextBlock Margin="0,8,0,2" Opacity="0.7" Text="SimHub value" />
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBox Height="26" Margin="0,0,6,0"
+                                                                 IsReadOnly="True"
+                                                                 Text="{Binding Property, Mode=OneWay}" />
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                            <Button Width="70" Height="26" Margin="0,0,4,0"
+                                                                    Click="ChooseProperty_Click" Content="Choose..." />
+                                                            <Button Width="56" Height="26"
+                                                                    Click="ClearProperty_Click" Content="Clear" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </StackPanel>
+
+                                                <!-- Fixed text, only when nothing is streamed -->
+                                                <StackPanel Visibility="{Binding ShowsText, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                    <TextBlock Margin="0,8,0,2" Opacity="0.7" Text="Fixed text" />
+                                                    <TextBox Height="26"
+                                                             Text="{Binding Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                </StackPanel>
+
+                                                <!-- Text and bar only; a clock has no value to format -->
+                                                <Grid Margin="0,8,0,0"
+                                                      Visibility="{Binding IsClock, Converter={StaticResource InverseBooleanToVisibility}, FallbackValue=Visible}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="6" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="6" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Decimals" />
+                                                    <TextBox Grid.Row="1" Height="26"
+                                                             Text="{Binding Decimals, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                                    <StackPanel Grid.Column="2" Grid.RowSpan="2"
+                                                                Visibility="{Binding IsText, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                        <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Unit" />
+                                                        <TextBox Height="26"
+                                                                 Text="{Binding Unit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="4" Grid.RowSpan="2"
+                                                                Visibility="{Binding HasFontSize, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                        <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Text size" />
+                                                        <TextBox Height="26"
+                                                                 Text="{Binding FontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <!-- Progress bar only -->
+                                                <StackPanel Visibility="{Binding IsBar, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                    <Grid Margin="0,8,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="6" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="6" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="6" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+
+                                                        <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Minimum" />
+                                                        <TextBox Grid.Row="1" Height="26"
+                                                                 Text="{Binding Minimum, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                                        <TextBlock Grid.Column="2" Margin="0,0,0,2" Opacity="0.7" Text="Maximum" />
+                                                        <TextBox Grid.Row="1" Grid.Column="2" Height="26"
+                                                                 Text="{Binding Maximum, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                                        <TextBlock Grid.Column="4" Margin="0,0,0,2" Opacity="0.7" Text="Width" />
+                                                        <TextBox Grid.Row="1" Grid.Column="4" Height="26"
+                                                                 Text="{Binding BarWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                                        <TextBlock Grid.Column="6" Margin="0,0,0,2" Opacity="0.7" Text="Height" />
+                                                        <TextBox Grid.Row="1" Grid.Column="6" Height="26"
+                                                                 Text="{Binding BarHeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </Grid>
+                                                </StackPanel>
+
+                                                <!-- Outline text only: the stroke that distinguishes
+                                                     item type 117 from plain text (113) -->
+                                                <StackPanel Visibility="{Binding IsOutline, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                    <Grid Margin="0,8,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="6" />
+                                                            <ColumnDefinition Width="56" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+
+                                                        <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Outline" />
+                                                        <ui:HexColorPicker x:Name="OutlineColorPicker"
+                                                                           Grid.Row="1" Height="26"
+                                                                           HexColor="{Binding OutlineColor, Mode=TwoWay}"
+                                                                           SelectedColorChanged="WidgetColorChanged" />
+
+                                                        <TextBlock Grid.Column="2" Margin="0,0,0,2" Opacity="0.7" Text="Width" />
+                                                        <TextBox Grid.Row="1" Grid.Column="2" Height="26"
+                                                                 Text="{Binding OutlineWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </Grid>
+
+                                                    <TextBlock Margin="0,4,0,0" Opacity="0.55" TextWrapping="Wrap"
+                                                               Text="A stroke around the text keeps it readable over a picture or GIF. Set the width to 0 for plain text." />
+                                                </StackPanel>
+
+                                                <!-- Clock only -->
+                                                <StackPanel Visibility="{Binding IsClock, Converter={StaticResource BooleanToVisibility}, FallbackValue=Collapsed}">
+                                                    <CheckBox Margin="0,8,0,0"
+                                                              Click="WidgetFieldChanged"
+                                                              Content="Show seconds"
+                                                              IsChecked="{Binding ShowSeconds, Mode=TwoWay}" />
+
+                                                    <Grid Margin="0,8,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="6" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+
+                                                        <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Text size" />
+                                                        <TextBox Grid.Row="1" Height="26"
+                                                                 Text="{Binding FontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                                        <TextBlock Grid.Column="2" Margin="0,0,0,2" Opacity="0.7" Text="Spacing" />
+                                                        <TextBox Grid.Row="1" Grid.Column="2" Height="26"
+                                                                 Text="{Binding Spacing, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                 ToolTip="Pixels between the hour, minute and second boxes. Use a negative value to pull them closer together." />
+                                                    </Grid>
+
+                                                    <TextBlock Margin="0,4,0,0" Opacity="0.55" TextWrapping="Wrap"
+                                                               Text="The device draws no colon and has no letter-spacing, so the gap between the pairs is set here. Negative values close it up." />
+                                                </StackPanel>
+
+                                                <!-- Exact placement; dragging is only a rough guide -->
+                                                <TextBlock Margin="0,10,0,2" Opacity="0.7"
+                                                           Text="Position on the 428 x 142 screen" />
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="10" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock Margin="0,0,4,0" VerticalAlignment="Center" Text="X" />
+                                                    <TextBox Grid.Column="1" Height="26"
+                                                             Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" />
+
+                                                    <TextBlock Grid.Column="3" Margin="0,0,4,0" VerticalAlignment="Center" Text="Y" />
+                                                    <TextBox Grid.Column="4" Height="26"
+                                                             Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" />
+                                                </Grid>
+
+                                                <TextBlock Margin="0,4,0,0" Opacity="0.55" TextWrapping="Wrap"
+                                                           Text="Dragging on the screen above sets these too." />
+
+                                                <TextBlock Margin="0,8,0,2" Opacity="0.7" Text="Colour" />
+                                                <ui:HexColorPicker x:Name="WidgetColorPicker"
+                                                                   Height="26"
+                                                                   HexColor="{Binding Color, Mode=TwoWay}"
+                                                                   SelectedColorChanged="WidgetColorChanged" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
                             <StackPanel Grid.Column="2">
 
                                 <!-- KEY -->
@@ -332,12 +672,10 @@
                                             </Grid.RowDefinitions>
 
                                             <TextBlock Margin="0,0,0,2" Opacity="0.7" Text="Colour" />
-                                            <ComboBox x:Name="TitleColorCombo"
-                                                      Grid.Row="1" Height="26"
-                                                      DisplayMemberPath="Key"
-                                                      SelectedValuePath="Value"
-                                                      SelectedValue="{Binding TitleColor, Mode=TwoWay}"
-                                                      SelectionChanged="KeyStyleChanged" />
+                                            <ui:HexColorPicker x:Name="TitleColorPicker"
+                                                               Grid.Row="1" Height="26"
+                                                               HexColor="{Binding TitleColor, Mode=TwoWay}"
+                                                               SelectedColorChanged="KeyColorChanged" />
 
                                             <TextBlock Grid.Column="2" Margin="0,0,0,2" Opacity="0.7" Text="Size" />
                                             <ComboBox x:Name="TitleSizeCombo"

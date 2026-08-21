@@ -111,8 +111,15 @@ namespace Mk20Box.Ui
 
             if (KeyMapping.IsModifier(key))
             {
+                // Held on its own it may still be the wanted key, e.g. ETS2 shifts on
+                // bare Shift and Ctrl. Decided on release, once it is clear no other
+                // key followed.
+                pendingModifier = key;
+                Content = "Release for " + Describe(key) + ", or press another key";
                 return;
             }
+
+            pendingModifier = Key.None;
 
             HidKey hidKey;
             if (!KeyMapping.TryMap(key, out hidKey))
@@ -136,6 +143,64 @@ namespace Mk20Box.Ui
             UpdateText();
             Recorded?.Invoke(this, new RoutedEventArgs());
         }
+
+        /// <summary>
+        /// A modifier released without any other key becomes the keystroke itself,
+        /// rather than a modifier of something else.
+        /// </summary>
+        protected override void OnPreviewKeyUp(KeyEventArgs e)
+        {
+            if (!isRecording || pendingModifier == Key.None)
+            {
+                base.OnPreviewKeyUp(e);
+                return;
+            }
+
+            Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (key != pendingModifier)
+            {
+                base.OnPreviewKeyUp(e);
+                return;
+            }
+
+            e.Handled = true;
+
+            HidKey hidKey;
+            if (KeyMapping.TryMap(key, out hidKey))
+            {
+                Keystroke = new Mk20KeystrokeSettings { Key = hidKey.ToString() };
+                isRecording = false;
+                pendingModifier = Key.None;
+                UpdateText();
+                Recorded?.Invoke(this, new RoutedEventArgs());
+                return;
+            }
+
+            pendingModifier = Key.None;
+        }
+
+        private static string Describe(Key key)
+        {
+            switch (key)
+            {
+                case Key.LeftCtrl:
+                case Key.RightCtrl:
+                    return "Ctrl";
+
+                case Key.LeftShift:
+                case Key.RightShift:
+                    return "Shift";
+
+                case Key.LeftAlt:
+                case Key.RightAlt:
+                    return "Alt";
+
+                default:
+                    return "Win";
+            }
+        }
+
+        private Key pendingModifier = Key.None;
 
         /// <summary>Forgets the recorded keystroke.</summary>
         public void Clear()

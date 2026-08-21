@@ -139,9 +139,45 @@ namespace Mk20Box.Ui
                 }
 
                 SelectedKey = value.Keys[0];
+                OnPropertyChanged(nameof(SecondaryPage));
                 RaiseNavigationChanged();
             }
         }
+
+        /// <summary>
+        /// Draw page 1's secondary screen everywhere. The composer replicates it at
+        /// build time, so nothing is copied between pages in storage.
+        /// </summary>
+        public bool GlobalSecondaryScreen
+        {
+            get { return settings.GlobalSecondaryScreen; }
+            set
+            {
+                if (settings.GlobalSecondaryScreen == value)
+                {
+                    return;
+                }
+
+                settings.GlobalSecondaryScreen = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SecondaryPage));
+                OnPropertyChanged(nameof(SecondaryScreenScope));
+                NotifyChanged();
+            }
+        }
+
+        /// <summary>
+        /// The page whose strip the editor shows and edits: the shared one when the
+        /// screen is global, otherwise whichever page is open.
+        /// </summary>
+        public ThemePageViewModel SecondaryPage
+        {
+            get { return GlobalSecondaryScreen ? Pages[0] : selectedPage; }
+        }
+
+        public string SecondaryScreenScope => GlobalSecondaryScreen
+            ? "Shared by every page and folder."
+            : "Belongs to this page only.";
 
         public DeviceKeyViewModel SelectedKey
         {

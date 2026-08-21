@@ -35,7 +35,60 @@ namespace Mk20Box.Ui
 
             LeftEncoder = new EncoderViewModel(model.LeftEncoder, isLeft: true);
             RightEncoder = new EncoderViewModel(model.RightEncoder, isLeft: false);
+
+            if (model.Widgets == null)
+            {
+                model.Widgets = new System.Collections.Generic.List<Mk20WidgetSettings>();
+            }
+
+            foreach (Mk20WidgetSettings widget in model.Widgets)
+            {
+                Widgets.Add(Watch(new WidgetViewModel(widget)));
+            }
         }
+
+        /// <summary>Keeps the stored list in step when a widget changes kind.</summary>
+        private WidgetViewModel Watch(WidgetViewModel widget)
+        {
+            widget.Replaced += (sender, e) =>
+            {
+                int index = model.Widgets.IndexOf(e.OldWidget);
+                if (index >= 0)
+                {
+                    model.Widgets[index] = e.NewWidget;
+                }
+            };
+
+            return widget;
+        }
+
+        /// <summary>Widgets drawn on the secondary screen.</summary>
+        public ObservableCollection<WidgetViewModel> Widgets { get; }
+            = new ObservableCollection<WidgetViewModel>();
+
+        /// <summary>Adds a widget to both the view and the persisted model.</summary>
+        public WidgetViewModel AddWidget(Mk20WidgetSettings widget)
+        {
+            model.Widgets.Add(widget);
+            WidgetViewModel viewModel = Watch(new WidgetViewModel(widget));
+            Widgets.Add(viewModel);
+            OnPropertyChanged(nameof(HasWidgets));
+            return viewModel;
+        }
+
+        public void RemoveWidget(WidgetViewModel widget)
+        {
+            if (widget == null)
+            {
+                return;
+            }
+
+            model.Widgets.Remove(widget.Model);
+            Widgets.Remove(widget);
+            OnPropertyChanged(nameof(HasWidgets));
+        }
+
+        public bool HasWidgets => Widgets.Count > 0;
 
         public Mk20PageSettings Model => model;
 

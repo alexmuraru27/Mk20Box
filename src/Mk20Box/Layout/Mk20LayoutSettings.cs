@@ -11,6 +11,13 @@ namespace Mk20Box.Layout
         public List<Mk20PageSettings> Pages { get; set; } = new List<Mk20PageSettings>();
 
         /// <summary>
+        /// Draw page 1's secondary screen on every page and folder. The strip is
+        /// stored per page because the device stores it per page, so the composer
+        /// replicates it rather than the editor duplicating data.
+        /// </summary>
+        public bool GlobalSecondaryScreen { get; set; }
+
+        /// <summary>
         /// A complete vanilla layout: one page, all twenty keys blank, both encoders
         /// unassigned. Used for new profiles and when resetting an existing one.
         /// </summary>
@@ -93,6 +100,9 @@ namespace Mk20Box.Layout
         public Mk20EncoderSettings RightEncoder { get; set; } = new Mk20EncoderSettings();
 
         public List<Mk20KeySettings> Keys { get; set; } = new List<Mk20KeySettings>();
+
+        /// <summary>Widgets drawn on the secondary screen.</summary>
+        public List<Mk20WidgetSettings> Widgets { get; set; } = new List<Mk20WidgetSettings>();
     }
 
     /// <summary>One key on a page, addressed the way the device addresses it.</summary>

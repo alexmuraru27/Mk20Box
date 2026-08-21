@@ -102,6 +102,22 @@ namespace Mk20Box
             }
         }
 
+        /// <summary>
+        /// Sends live values the loaded theme's widgets bind to by name. Failures are
+        /// reported to the caller rather than logged, since this runs continuously.
+        /// </summary>
+        public async Task PushSystemDataAsync(IReadOnlyDictionary<string, string> values)
+        {
+            Mk20DeviceClient current = client;
+
+            if (current == null || values == null || values.Count == 0)
+            {
+                return;
+            }
+
+            await current.PushSystemDataAsync(values).ConfigureAwait(false);
+        }
+
         /// <summary>Builds a theme from the layout and sends it to the device.</summary>
         public async Task<bool> UploadThemeAsync(string themeName, ThemeFile theme)
         {

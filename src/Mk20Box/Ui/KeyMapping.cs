@@ -44,6 +44,17 @@ namespace Mk20Box.Ui
         {
             var map = new Dictionary<Key, HidKey>
             {
+                // Modifiers as plain keys, so a game bound to bare Shift or Ctrl can be
+                // driven. A modifier held while another key is pressed is separate.
+                { Key.LeftCtrl, HidKey.LeftCtrl },
+                { Key.RightCtrl, HidKey.RightCtrl },
+                { Key.LeftShift, HidKey.LeftShift },
+                { Key.RightShift, HidKey.RightShift },
+                { Key.LeftAlt, HidKey.LeftAlt },
+                { Key.RightAlt, HidKey.RightAlt },
+                { Key.LWin, HidKey.LeftWin },
+                { Key.RWin, HidKey.RightWin },
+
                 { Key.Enter, HidKey.Enter },
                 { Key.Escape, HidKey.Escape },
                 { Key.Back, HidKey.Backspace },

@@ -50,7 +50,12 @@ namespace Mk20Box.Layout
             foreach (Mk20PageSettings page in layout.Pages)
             {
                 ThemePageBuilder pageBuilder = builders[page.Id];
-                AddBackgrounds(pageBuilder, page);
+
+                // One shared strip when the layout asks for it, so every folder keeps
+                // showing the same telemetry.
+                Mk20PageSettings secondary = layout.GlobalSecondaryScreen ? layout.Pages[0] : page;
+
+                AddBackgrounds(pageBuilder, page, secondary);
 
                 foreach (Mk20KeySettings key in page.Keys)
                 {
@@ -59,12 +64,16 @@ namespace Mk20Box.Layout
 
                 AddEncoder(pageBuilder, EncoderSide.Left, page.LeftEncoder);
                 AddEncoder(pageBuilder, EncoderSide.Right, page.RightEncoder);
+                AddWidgets(pageBuilder, secondary);
             }
 
             return builder.Build();
         }
 
-        private static void AddBackgrounds(ThemePageBuilder page, Mk20PageSettings settings)
+        private static void AddBackgrounds(
+            ThemePageBuilder page,
+            Mk20PageSettings settings,
+            Mk20PageSettings secondarySettings)
         {
             byte[] main = ReadFile(settings.BackgroundPath);
             if (main != null)
@@ -73,12 +82,12 @@ namespace Mk20Box.Layout
                 page.AddDynamicImage(image => image.MainScreenBackgroundAutoFit(name, main));
             }
 
-            byte[] secondary = ReadFile(settings.SecondaryBackgroundPath);
+            byte[] secondary = ReadFile(secondarySettings.SecondaryBackgroundPath);
             if (secondary != null)
             {
-                string name = Path.GetFileName(settings.SecondaryBackgroundPath);
+                string name = Path.GetFileName(secondarySettings.SecondaryBackgroundPath);
 
-                if (settings.SecondaryBackgroundFit)
+                if (secondarySettings.SecondaryBackgroundFit)
                 {
                     // Whole picture: padded to the strip so nothing is cut off, which
                     // matches how the device keeps the original proportions.
@@ -88,8 +97,8 @@ namespace Mk20Box.Layout
                 }
 
                 // Offsets only pan the crop; the strip's on-device rectangle is fixed.
-                double offsetX = Clamp(settings.SecondaryBackgroundOffsetX);
-                double offsetY = Clamp(settings.SecondaryBackgroundOffsetY);
+                double offsetX = Clamp(secondarySettings.SecondaryBackgroundOffsetX);
+                double offsetY = Clamp(secondarySettings.SecondaryBackgroundOffsetY);
 
                 page.AddDynamicImage(image =>
                     image.SecondaryScreenBackgroundAutoFit(name, secondary, offsetX, offsetY));
@@ -99,6 +108,195 @@ namespace Mk20Box.Layout
         private const int SecondaryWidth = 428;
         private const int SecondaryHeight = 142;
         private const int KeyIconSize = 128;
+
+        /// <summary>The strip sits to the right of the left encoder.</summary>
+        private const double SecondaryLeft = 106;
+
+        /// <summary>
+        /// Widgets sit above a screen background. The examples place the strip's clock
+        /// at z 2 for the same reason.
+        /// </summary>
+        private const double WidgetZ = 2;
+
+        /// <summary>
+        /// Draws the page's widgets on the secondary screen. Bound widgets carry a
+        /// channel name; the plugin pushes values under that name while a game runs.
+        /// </summary>
+        private static void AddWidgets(ThemePageBuilder page, Mk20PageSettings settings)
+        {
+            if (settings.Widgets == null)
+            {
+                return;
+            }
+
+            foreach (Mk20WidgetSettings widget in settings.Widgets)
+            {
+                // Whole pixels only: a dragged position can carry a long fraction, and
+                // the device drops an item whose coordinate is not an integer.
+                double x = Px(SecondaryLeft + widget.X);
+                double y = Px(widget.Y);
+                string channel = ChannelFor(widget);
+                ThemeColor front = ParseColor(widget.Color, ThemeColor.White);
+
+                var outline = widget as Mk20OutlineTextWidget;
+                if (outline != null)
+                {
+                    AddOutlineText(page, outline, x, y, front, channel);
+                    continue;
+                }
+
+                var text = widget as Mk20TextWidget;
+                if (text != null)
+                {
+                    page.AddText(item =>
+                    {
+                        // z 2 keeps widgets above a screen background, as the examples do.
+                        item.At(x, y, z: WidgetZ).Font(FontDescriptor(text.FontSize)).Color(front);
+
+                        if (text.IsBound)
+                        {
+                            item.BoundTo(channel);
+                        }
+                        else
+                        {
+                            item.Text(text.Text ?? string.Empty);
+                        }
+                    });
+                    continue;
+                }
+
+                var bar = widget as Mk20ProgressBarWidget;
+                if (bar != null)
+                {
+                    page.AddProgressBar(item => item
+                        .At(x, y, Px(bar.Width), Px(bar.Height), z: WidgetZ)
+                        .BoundTo(channel, bar.Minimum, bar.Maximum)
+                        .Colors(
+                            front,
+                            ParseColor(bar.BackColor, new ThemeColor(48, 58, 68)),
+                            ParseColor(bar.BorderColor, ThemeColor.Black.WithAlpha(180)),
+                            bar.BorderWidth,
+                            bar.CornerRadius));
+                    continue;
+                }
+
+                var clock = widget as Mk20ClockWidget;
+                if (clock != null)
+                {
+                    AddClock(page, clock, x, y, front);
+                }
+            }
+        }
+
+        private static void AddOutlineText(
+            ThemePageBuilder page,
+            Mk20OutlineTextWidget widget,
+            double x,
+            double y,
+            ThemeColor front,
+            string channel)
+        {
+            page.AddShadowText(item =>
+            {
+                item.At(x, y, z: WidgetZ)
+                    .Font(FontDescriptor(widget.FontSize))
+                    .Color(front)
+                    .Border(ParseColor(widget.OutlineColor, ThemeColor.Black), widget.OutlineWidth)
+
+                    // The builder defaults to a visible shadow, so switch it off.
+                    .Shadow(WireForm(ThemeColor.Transparent), 0);
+
+                if (widget.IsBound)
+                {
+                    item.BoundTo(channel);
+                }
+                else
+                {
+                    item.Text(widget.Text ?? string.Empty);
+                }
+            });
+        }
+
+        /// <summary>
+        /// A clock is one item per field, drawn left to right. There is no separator
+        /// and no letter-spacing setting, so the box and the gap between boxes are
+        /// the only spacing.
+        /// </summary>
+        private static void AddClock(
+            ThemePageBuilder page,
+            Mk20ClockWidget widget,
+            double x,
+            double y,
+            ThemeColor front)
+        {
+            double boxWidth = Px(widget.SafeDigitWidth);
+            double boxHeight = Px(widget.SafeDigitHeight);
+            double pitch = Px(widget.FieldPitch);
+            string font = FontDescriptor(widget.FontSize);
+
+            string[] fields = widget.ShowSeconds
+                ? new[] { "hour", "minute", "second" }
+                : new[] { "hour", "minute" };
+
+            for (int index = 0; index < fields.Length; index++)
+            {
+                string field = fields[index];
+                double left = x + (index * pitch);
+
+                page.AddDigitalClockField(clock => clock
+                    .At(left, y, boxWidth, boxHeight, z: WidgetZ)
+                    .Field(field)
+                    .Font(font)
+                    .Colors(front, ThemeColor.Transparent, ThemeColor.Transparent));
+            }
+        }
+
+        /// <summary>
+        /// Whole pixels. Confirmed on hardware: a clock at x=224 renders, while the
+        /// same clock at x=224.0395833 does not appear at all.
+        /// </summary>
+        private static double Px(double value)
+        {
+            return Math.Round(value, MidpointRounding.AwayFromZero);
+        }
+
+        /// <summary>Stable per widget, so renaming a label keeps the binding working.</summary>
+        public static string ChannelFor(Mk20WidgetSettings widget)
+        {
+            if (string.IsNullOrEmpty(widget.Channel))
+            {
+                widget.Channel = "mk20w" + Guid.NewGuid().ToString("N").Substring(0, 10);
+            }
+
+            return widget.Channel;
+        }
+
+        private static string FontDescriptor(double fontSize)
+        {
+            double size = fontSize < 6 ? 6 : fontSize;
+            return FormattableString.Invariant($"Microsoft YaHei,{size:0},-1,5,50,0,0,0,0,0");
+        }
+
+        /// <summary>
+        /// Widget colours must go out as "r=..,g=..,b=..,a=..". A ThemeColor parsed from
+        /// text reproduces that same text, so a hex value is rebuilt from its components
+        /// to force the wire form. Key titles are the exception and keep hex.
+        /// </summary>
+        private static ThemeColor ParseColor(string value, ThemeColor fallback)
+        {
+            ThemeColor parsed;
+            if (string.IsNullOrWhiteSpace(value) || !ThemeColor.TryParse(value, out parsed))
+            {
+                return WireForm(fallback);
+            }
+
+            return WireForm(parsed);
+        }
+
+        private static ThemeColor WireForm(ThemeColor color)
+        {
+            return new ThemeColor(color.R, color.G, color.B, color.A);
+        }
 
         /// <summary>
         /// Scales the picture to fit inside the strip, keeping its proportions and
