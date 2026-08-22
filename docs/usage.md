@@ -167,6 +167,10 @@ file twice gives you two copies. Imported pictures are unpacked to
 An imported profile behaves like any other: it is available for every game. Bind
 it to one above if you want it loaded automatically.
 
+`examples/LMU.mk20profile` in the repository is a ready-made Le Mans Ultimate
+layout to import and edit. Its keys carry pictures and labels but no actions, so
+the bindings are yours to choose.
+
 ## Properties exposed to SimHub
 
 `MK20Box.Status`, `.ActiveGame`, `.ActiveProfile`, `.ActiveProfileIsGlobal`,

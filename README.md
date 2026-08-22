@@ -72,6 +72,20 @@ Press **Send to device** when you like what you see.
 
 > **Tip:** right-click a key or the strip for picture options.
 
+### Start from an example
+
+[`examples/LMU.mk20profile`](examples/LMU.mk20profile) is a ready-made **Le Mans
+Ultimate** layout — a main page plus folders for electronics, pit, MFD and
+cameras, across sixty keys.
+
+In the **Profiles** section, press **Import** and pick the file. It arrives
+alongside your own profiles, so nothing is overwritten, and it is available for
+every game rather than tied to LMU.
+
+The keys carry their pictures and labels, but their actions are left
+unassigned: bind them to suit your own wheel, since anything already on it is
+better left there. It is a starting point to edit, not a finished profile.
+
 <div align="center">
 
 <img src="docs/screenshots/actual_device.jpg" alt="An MK20 running an MK20Box profile" width="380">
