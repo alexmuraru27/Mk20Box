@@ -147,6 +147,125 @@ namespace Mk20Box.Tests.Ui
         }
 
         [Test]
+        public void ResetKey_DeletesTheFolderItOpened()
+        {
+            // A folder is only reachable through its key, so keeping one would strand
+            // it where nothing could ever open it.
+            DeviceLayoutViewModel layout = NewLayout();
+            DeviceKeyViewModel opener = KeyAt(layout, 0);
+            opener.ActionType = KeyActionKinds.OpenFolder;
+
+            string folderId = opener.TargetPageId;
+            Assert.That(layout.Pages, Has.Count.EqualTo(2));
+
+            layout.ResetKey(opener);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(layout.Pages, Has.Count.EqualTo(1));
+                Assert.That(layout.Pages.Any(page => page.Id == folderId), Is.False);
+                Assert.That(opener.TargetPageId, Is.Null);
+            });
+        }
+
+        [Test]
+        public void ResetKey_DeletesNestedFoldersToo()
+        {
+            DeviceLayoutViewModel layout = NewLayout();
+            DeviceKeyViewModel opener = KeyAt(layout, 0);
+            opener.ActionType = KeyActionKinds.OpenFolder;
+
+            // A folder inside that folder, which would otherwise be stranded twice over.
+            layout.ActivateKey(opener);
+            DeviceKeyViewModel nested = layout.SelectedPage.Keys[0];
+            nested.ActionType = KeyActionKinds.OpenFolder;
+            Assert.That(layout.Pages, Has.Count.EqualTo(3));
+
+            layout.ActivateKey(layout.SelectedPage.Keys.Last());
+            layout.ResetKey(opener);
+
+            Assert.That(layout.Pages, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void ResetKey_LeavesOtherFoldersAlone()
+        {
+            DeviceLayoutViewModel layout = NewLayout();
+            DeviceKeyViewModel first = KeyAt(layout, 0);
+            DeviceKeyViewModel second = KeyAt(layout, 1);
+            first.ActionType = KeyActionKinds.OpenFolder;
+            second.ActionType = KeyActionKinds.OpenFolder;
+
+            string keptId = second.TargetPageId;
+            layout.ResetKey(first);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(layout.Pages, Has.Count.EqualTo(2));
+                Assert.That(second.TargetPageId, Is.EqualTo(keptId));
+                Assert.That(layout.Pages.Any(page => page.Id == keptId), Is.True);
+            });
+        }
+
+        [Test]
+        public void PasteKey_DeletesTheFolderTheTargetOpened()
+        {
+            DeviceLayoutViewModel layout = NewLayout();
+            DeviceKeyViewModel target = KeyAt(layout, 1);
+            target.ActionType = KeyActionKinds.OpenFolder;
+            string doomedId = target.TargetPageId;
+
+            DeviceKeyViewModel source = KeyAt(layout, 0);
+            source.Title = "PLAIN";
+            layout.CopyKey(source);
+            layout.PasteKey(target);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(layout.Pages.Any(page => page.Id == doomedId), Is.False);
+                Assert.That(layout.Pages, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public void ChangingTheActionAwayFromAFolder_DeletesIt()
+        {
+            DeviceLayoutViewModel layout = NewLayout();
+            DeviceKeyViewModel key = KeyAt(layout, 0);
+            key.ActionType = KeyActionKinds.OpenFolder;
+            string folderId = key.TargetPageId;
+
+            key.ActionType = KeyActionKinds.Unassigned;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(key.TargetPageId, Is.Null);
+                Assert.That(layout.Pages.Any(page => page.Id == folderId), Is.False);
+                Assert.That(layout.Pages, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public void DeletingAFolderFromInsideIt_LeavesTheEditorSomewhereReal()
+        {
+            DeviceLayoutViewModel layout = NewLayout();
+            DeviceKeyViewModel opener = KeyAt(layout, 0);
+            opener.ActionType = KeyActionKinds.OpenFolder;
+
+            layout.ActivateKey(opener);
+            Assert.That(layout.IsInFolder, Is.True);
+
+            layout.ResetKey(opener);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(layout.IsInFolder, Is.False);
+                Assert.That(layout.Pages, Does.Contain(layout.SelectedPage));
+                Assert.That(layout.CanGoBack, Is.False);
+            });
+        }
+
+        [Test]
         public void PasteKey_CanCarryAKeyIntoAFolder()
         {
             DeviceLayoutViewModel layout = NewLayout();
@@ -304,18 +423,6 @@ namespace Mk20Box.Tests.Ui
         }
 
         [Test]
-        public void ChangingTheActionAwayFromAFolder_DropsTheLink()
-        {
-            DeviceLayoutViewModel layout = NewLayout();
-            DeviceKeyViewModel key = KeyAt(layout, 0);
-
-            key.ActionType = KeyActionKinds.OpenFolder;
-            key.ActionType = KeyActionKinds.Unassigned;
-
-            Assert.That(key.TargetPageId, Is.Null);
-        }
-
-        [Test]
         public void AddPage_JoinsTheTopLevelRing()
         {
             DeviceLayoutViewModel layout = NewLayout();
@@ -392,6 +499,37 @@ namespace Mk20Box.Tests.Ui
             layout.ResetKey(KeyAt(layout, 2));
 
             Assert.That(raised, Is.GreaterThanOrEqualTo(2));
+        }
+
+        [Test]
+        public void ResetKey_ReportsOneChangeEvenWhenItDeletesAFolder()
+        {
+            // Every change is saved to disk, so a compound edit that announced each of
+            // its steps would write the settings several times over.
+            DeviceLayoutViewModel layout = NewLayout();
+            DeviceKeyViewModel opener = KeyAt(layout, 0);
+            opener.ActionType = KeyActionKinds.OpenFolder;
+
+            int raised = 0;
+            layout.Changed += (sender, args) => raised++;
+            layout.ResetKey(opener);
+
+            Assert.That(raised, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void PasteKey_ReportsOneChangeEvenWhenItDeletesAFolder()
+        {
+            DeviceLayoutViewModel layout = NewLayout();
+            DeviceKeyViewModel target = KeyAt(layout, 1);
+            target.ActionType = KeyActionKinds.OpenFolder;
+            layout.CopyKey(KeyAt(layout, 0));
+
+            int raised = 0;
+            layout.Changed += (sender, args) => raised++;
+            layout.PasteKey(target);
+
+            Assert.That(raised, Is.EqualTo(1));
         }
     }
 }

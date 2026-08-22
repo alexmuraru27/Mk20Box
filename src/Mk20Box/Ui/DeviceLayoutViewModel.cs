@@ -214,6 +214,14 @@ namespace Mk20Box.Ui
 
             if (e.PropertyName == nameof(DeviceKeyViewModel.ActionType))
             {
+                // A key that no longer opens its folder takes the folder with it,
+                // rather than leaving pages nothing can reach.
+                if (key != null && !key.OpensFolder)
+                {
+                    DiscardFolderOf(key);
+                    key.TargetPageId = null;
+                }
+
                 EnsureFolderForKey(key);
                 NotifyChanged();
             }
@@ -331,16 +339,23 @@ namespace Mk20Box.Ui
                 return false;
             }
 
-            key.ApplyFrom(copiedKey);
+            AsSingleChange(() =>
+            {
+                // Whatever the key opened is about to be unreachable, so it goes with it.
+                DiscardFolderOf(key);
 
-            // A pasted folder key arrives without a folder, so it gets its own.
-            EnsureFolderForKey(key);
+                key.ApplyFrom(copiedKey);
 
-            NotifyChanged();
+                // A pasted folder key arrives without a folder, so it gets its own.
+                EnsureFolderForKey(key);
+
+                NotifyChanged();
+            });
+
             return true;
         }
 
-        /// <summary>Clears a key back to blank and unassigned.</summary>
+        /// <summary>Clears a key back to blank and unassigned, folder and all.</summary>
         public bool ResetKey(DeviceKeyViewModel key)
         {
             if (key == null)
@@ -348,14 +363,19 @@ namespace Mk20Box.Ui
                 return false;
             }
 
-            key.ResetToDefault();
-            NotifyChanged();
+            AsSingleChange(() =>
+            {
+                DiscardFolderOf(key);
+                key.ResetToDefault();
+                NotifyChanged();
+            });
+
             return true;
         }
 
         /// <summary>
         /// True when the folder a key opens has anything worth keeping, so the editor
-        /// can warn before the key stops pointing at it.
+        /// can warn before it is deleted along with the key.
         /// </summary>
         public bool FolderHasContent(DeviceKeyViewModel key)
         {
@@ -370,7 +390,8 @@ namespace Mk20Box.Ui
                 return false;
             }
 
-            // Every folder is born with a return key, so that alone is not content.
+            // Every folder is born with a return key, so that alone is not content. A
+            // nested folder counts, even when the page holding it is otherwise empty.
             return folder.Keys.Any(candidate =>
                 candidate.ActionType != KeyActionKinds.OneLevelUp
                 && (candidate.HasAction || candidate.HasMedia || candidate.HasTitle));
@@ -475,21 +496,61 @@ namespace Mk20Box.Ui
                 return;
             }
 
-            ThemePageViewModel doomed = selectedPage;
-            List<ThemePageViewModel> removed = Pages.Where(page => IsDescendantOf(page, doomed)).ToList();
-            removed.Add(doomed);
-
-            foreach (ThemePageViewModel page in removed)
-            {
-                Pages.Remove(page);
-                settings.Pages.Remove(page.Model);
-            }
-
-            UnbindKeysTargeting(removed);
+            RemovePageAndDescendants(selectedPage);
 
             navigationStack.Clear();
             SelectedPage = TopLevelPages.First();
             NotifyChanged();
+        }
+
+        /// <summary>
+        /// Removes a page and everything nested below it. A folder is only reachable
+        /// through the key that opens it, so leaving one behind would strand it and its
+        /// own sub-folders where nothing can ever open them again.
+        /// </summary>
+        private void RemovePageAndDescendants(ThemePageViewModel page)
+        {
+            List<ThemePageViewModel> removed = Pages.Where(candidate => IsDescendantOf(candidate, page)).ToList();
+            removed.Add(page);
+
+            foreach (ThemePageViewModel doomed in removed)
+            {
+                Pages.Remove(doomed);
+                settings.Pages.Remove(doomed.Model);
+            }
+
+            UnbindKeysTargeting(removed);
+        }
+
+        /// <summary>
+        /// Deletes the folder a key opens, if it has one. Called when the key is about
+        /// to stop pointing at it, so the pages do not outlive their only way in.
+        /// </summary>
+        private void DiscardFolderOf(DeviceKeyViewModel key)
+        {
+            if (key == null || string.IsNullOrEmpty(key.TargetPageId))
+            {
+                return;
+            }
+
+            ThemePageViewModel folder = Pages.FirstOrDefault(page => page.Id == key.TargetPageId);
+            if (folder == null)
+            {
+                return;
+            }
+
+            // Editing from inside the folder being deleted would leave the editor on a
+            // page that no longer exists.
+            bool insideDoomedFolder = IsDescendantOf(selectedPage, folder)
+                || ReferenceEquals(selectedPage, folder);
+
+            RemovePageAndDescendants(folder);
+
+            if (insideDoomedFolder)
+            {
+                navigationStack.Clear();
+                SelectedPage = TopLevelPages.First();
+            }
         }
 
         private void UnbindKeysTargeting(ICollection<ThemePageViewModel> removed)
@@ -582,9 +643,51 @@ namespace Mk20Box.Ui
             OnPropertyChanged(nameof(IsInFolder));
         }
 
+        /// <summary>
+        /// Raised when the layout changes and should be persisted. Compound edits
+        /// coalesce into one, so a single reset does not write the settings repeatedly.
+        /// </summary>
         private void NotifyChanged()
         {
+            if (suppressChangeNotifications)
+            {
+                pendingChange = true;
+                return;
+            }
+
             Changed?.Invoke(this, EventArgs.Empty);
         }
+
+        /// <summary>
+        /// Runs an edit made of several smaller ones, reporting a single change at the
+        /// end. Deleting a folder re-assigns the keys that pointed into it, and each of
+        /// those would otherwise be announced - and saved - on its own.
+        /// </summary>
+        private void AsSingleChange(Action edit)
+        {
+            bool outermost = !suppressChangeNotifications;
+            suppressChangeNotifications = true;
+
+            try
+            {
+                edit();
+            }
+            finally
+            {
+                if (outermost)
+                {
+                    suppressChangeNotifications = false;
+
+                    if (pendingChange)
+                    {
+                        pendingChange = false;
+                        Changed?.Invoke(this, EventArgs.Empty);
+                    }
+                }
+            }
+        }
+
+        private bool suppressChangeNotifications;
+        private bool pendingChange;
     }
 }

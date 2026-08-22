@@ -376,9 +376,9 @@ namespace Mk20Box
         }
 
         /// <summary>
-        /// Warns before a key stops opening a folder that has something in it. The
-        /// folder itself is kept, as it is when the action is changed by hand, but it
-        /// can no longer be reached from here.
+        /// Warns before a key that opens a folder is replaced, because the folder goes
+        /// with it: a folder is only reachable through its key, so keeping one would
+        /// strand it where nothing could ever open it.
         /// </summary>
         private bool ConfirmFolderKeyIsReplaced(Mk20Box.Ui.DeviceKeyViewModel key, string verb)
         {
@@ -389,8 +389,8 @@ namespace Mk20Box
 
             MessageBoxResult confirm = MessageBox.Show(
                 verb + " \"" + key.Label + "\"?\n\n"
-                    + "It opens a folder that has keys set up in it. The folder is kept, "
-                    + "but nothing will open it any more.",
+                    + "It opens a folder that has keys set up in it. The folder and "
+                    + "everything in it will be deleted. This cannot be undone.",
                 "MK20Box",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning,

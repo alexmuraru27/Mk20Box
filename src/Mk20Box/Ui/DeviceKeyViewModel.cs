@@ -284,12 +284,9 @@ namespace Mk20Box.Ui
                     return;
                 }
 
+                // The folder is dropped by the layout, which can also delete it and ask
+                // first. Clearing the link here would strand the pages instead.
                 model.ActionType = value;
-
-                if (value != KeyActionKinds.OpenFolder)
-                {
-                    model.TargetPageId = null;
-                }
 
                 OnPropertyChanged();
                 RaiseActionChanged();
