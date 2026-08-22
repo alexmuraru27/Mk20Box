@@ -590,9 +590,7 @@ namespace Mk20Box.Layout
         {
             switch (function)
             {
-                case EncoderFunctions.DeviceVolume: return EncoderFunctionType.DeviceVolume;
                 case EncoderFunctions.DeviceBrightness: return EncoderFunctionType.DeviceBrightness;
-                case EncoderFunctions.SystemMedia: return EncoderFunctionType.SystemMedia;
                 default: return EncoderFunctionType.SystemVolume;
             }
         }
@@ -602,8 +600,6 @@ namespace Mk20Box.Layout
             switch (function)
             {
                 case EncoderFunctions.DeviceBrightness: return DeviceIcon.EncoderDeviceBrightness;
-                case EncoderFunctions.SystemMedia: return DeviceIcon.EncoderSystemMedia;
-                case EncoderFunctions.DeviceVolume: return DeviceIcon.EncoderDeviceVolume;
                 default: return DeviceIcon.EncoderSystemVolume;
             }
         }

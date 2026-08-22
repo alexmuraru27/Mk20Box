@@ -237,5 +237,12 @@ namespace Mk20Box.Tests.Layout
                 Assert.That(EncoderFunctions.All.Distinct().Count(), Is.EqualTo(EncoderFunctions.All.Length));
             });
         }
+
+        [Test]
+        public void Functions_OfferOnlyTheTwoThatAreUseful()
+        {
+            Assert.That(EncoderFunctions.All,
+                Is.EqualTo(new[] { EncoderFunctions.SystemVolume, EncoderFunctions.DeviceBrightness }));
+        }
     }
 }

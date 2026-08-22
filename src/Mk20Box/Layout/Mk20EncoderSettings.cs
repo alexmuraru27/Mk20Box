@@ -38,16 +38,12 @@ namespace Mk20Box.Layout
     public static class EncoderFunctions
     {
         public const string SystemVolume = "System volume";
-        public const string DeviceVolume = "Device volume";
         public const string DeviceBrightness = "Device brightness";
-        public const string SystemMedia = "System media";
 
         public static readonly string[] All =
         {
             SystemVolume,
-            DeviceVolume,
             DeviceBrightness,
-            SystemMedia,
         };
     }
 
