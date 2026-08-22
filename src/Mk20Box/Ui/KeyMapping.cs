@@ -65,6 +65,7 @@ namespace Mk20Box.Ui
                 { Key.OemOpenBrackets, HidKey.LeftBracket },
                 { Key.OemCloseBrackets, HidKey.RightBracket },
                 { Key.OemBackslash, HidKey.Backslash },
+                { Key.OemPipe, HidKey.Backslash },
                 { Key.OemSemicolon, HidKey.Semicolon },
                 { Key.OemQuotes, HidKey.Apostrophe },
                 { Key.OemTilde, HidKey.GraveAccent },
@@ -78,6 +79,36 @@ namespace Mk20Box.Ui
                 { Key.Insert, HidKey.Insert },
                 { Key.Home, HidKey.Home },
                 { Key.PageUp, HidKey.PageUp },
+                { Key.Delete, HidKey.Delete },
+                { Key.End, HidKey.End },
+                { Key.PageDown, HidKey.PageDown },
+                { Key.Apps, HidKey.Application },
+
+                // The arrows are named "...Arrow" in the HID tables, so they cannot be
+                // matched to the WPF names automatically.
+                { Key.Right, HidKey.RightArrow },
+                { Key.Left, HidKey.LeftArrow },
+                { Key.Down, HidKey.DownArrow },
+                { Key.Up, HidKey.UpArrow },
+
+                // The numeric keypad is a separate set of HID codes from the digit row,
+                // and games bind them separately, so the two must not be conflated.
+                { Key.NumLock, HidKey.NumLock },
+                { Key.Divide, HidKey.KeypadDivide },
+                { Key.Multiply, HidKey.KeypadMultiply },
+                { Key.Subtract, HidKey.KeypadMinus },
+                { Key.Add, HidKey.KeypadPlus },
+                { Key.Decimal, HidKey.KeypadPeriod },
+                { Key.NumPad0, HidKey.Keypad0 },
+                { Key.NumPad1, HidKey.Keypad1 },
+                { Key.NumPad2, HidKey.Keypad2 },
+                { Key.NumPad3, HidKey.Keypad3 },
+                { Key.NumPad4, HidKey.Keypad4 },
+                { Key.NumPad5, HidKey.Keypad5 },
+                { Key.NumPad6, HidKey.Keypad6 },
+                { Key.NumPad7, HidKey.Keypad7 },
+                { Key.NumPad8, HidKey.Keypad8 },
+                { Key.NumPad9, HidKey.Keypad9 },
             };
 
             AddRange(map, Key.A, Key.Z, HidKey.A);
@@ -95,14 +126,6 @@ namespace Mk20Box.Ui
             map[Key.D9] = HidKey.Digit9;
             map[Key.D0] = HidKey.Digit0;
 
-            AddOptional(map, "Delete", Key.Delete);
-            AddOptional(map, "End", Key.End);
-            AddOptional(map, "PageDown", Key.PageDown);
-            AddOptional(map, "Right", Key.Right);
-            AddOptional(map, "Left", Key.Left);
-            AddOptional(map, "Down", Key.Down);
-            AddOptional(map, "Up", Key.Up);
-
             return map;
         }
 
@@ -111,16 +134,6 @@ namespace Mk20Box.Ui
             for (int offset = 0; offset <= last - first; offset++)
             {
                 map[first + offset] = firstHid + offset;
-            }
-        }
-
-        /// <summary>Adds a key only if the library defines a matching HID name.</summary>
-        private static void AddOptional(Dictionary<Key, HidKey> map, string hidName, Key key)
-        {
-            HidKey parsed;
-            if (System.Enum.TryParse(hidName, out parsed))
-            {
-                map[key] = parsed;
             }
         }
     }

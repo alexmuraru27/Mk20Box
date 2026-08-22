@@ -17,7 +17,7 @@ Click a key.
 
 | Action | Runs on | |
 |---|---|---|
-| Keystroke | Device | One key plus modifiers, e.g. `Ctrl + Shift + C` |
+| Keystroke | Device | Any keyboard key plus modifiers, e.g. `Ctrl + Shift + C` |
 | Macro | Plugin | Keystrokes, typed text, waits, SimHub actions |
 | SimHub action | Plugin | Fires a named SimHub command |
 | SimHub input | Plugin | Virtual button you bind in Controls & Events |
@@ -27,6 +27,12 @@ Click a key.
 
 **Device actions keep working with SimHub minimised or closed.** Plugin actions
 need MK20Box running.
+
+Recording a keystroke accepts anything the device can send: letters, digits,
+function keys, punctuation, the navigation cluster, a bare modifier, and the
+numeric keypad. The keypad keys carry their own codes, so a game bound to
+`Numpad 1` is not triggered by the `1` above the letters — record the key you
+actually bound.
 
 ### Copying and clearing keys
 

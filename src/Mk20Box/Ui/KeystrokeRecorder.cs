@@ -115,8 +115,7 @@ namespace Mk20Box.Ui
                 // bare Shift and Ctrl. Decided on release, once it is clear no other
                 // key followed.
                 pendingModifier = key;
-                Content = "Release for " + Describe(key) + ", or press another key";
-                return;
+                Content = "Release for " + Describe(key) + ", or press another key";                return;
             }
 
             pendingModifier = Key.None;
@@ -126,6 +125,14 @@ namespace Mk20Box.Ui
             {
                 Content = "Unsupported key - try another";
                 return;
+            }
+
+            // Windows reports both Enter keys as the same key and tells them apart only
+            // by the extended-key flag, so the keypad one is resolved from the raw
+            // message rather than the WPF key.
+            if (hidKey == HidKey.Enter && IsExtendedKey())
+            {
+                hidKey = HidKey.KeypadEnter;
             }
 
             ModifierKeys modifiers = Keyboard.Modifiers;
@@ -179,8 +186,26 @@ namespace Mk20Box.Ui
             pendingModifier = Key.None;
         }
 
-        private static string Describe(Key key)
+        /// <summary>
+        /// True when the press came from the extended block. Bit 24 of the message's
+        /// lParam carries this, and it is the only thing separating the keypad Enter
+        /// from the main one: Windows reports both as <see cref="Key.Return"/>, but the
+        /// device sends a different HID code for each, and a game bound to one does not
+        /// answer the other.
+        /// </summary>
+        private static bool IsExtendedKey()
         {
+            const int ExtendedKeyFlag = 1 << 24;
+
+            // The WPF event does not carry lParam, so it is read from the raw message,
+            // which is still current while the event is being handled.
+            System.Windows.Interop.MSG message =
+                System.Windows.Interop.ComponentDispatcher.CurrentKeyboardMessage;
+
+            return (message.lParam.ToInt64() & ExtendedKeyFlag) != 0;
+        }
+
+        private static string Describe(Key key)        {
             switch (key)
             {
                 case Key.LeftCtrl:
